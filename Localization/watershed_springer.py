@@ -12,10 +12,9 @@ from skimage.morphology import reconstruction
 
 
 # GOALS
-# 1) Figure out what Sobel filter is supposed to do (particularly the #s)
-# 2) Figure out how to set T1 (10% of max gradient value) (Shivani)
-# 3) Actually do dilate & reconstruction (Nihal)
-# 4) Figure out how to get local minima so that watershed algorithm accepts it (Silvi)
+# 1) Figure out seed/mask
+# 2) Figure out upper number threshold for canny edge
+# 3) Figure out left/right bounding box edges
 
 
 
@@ -32,11 +31,19 @@ def load_images_from_folder(folder):
 def sobel_filter_method_1(img):
     # Method 1- Converts from 16S to 8U
     grad_x = cv2.Sobel(img, cv2.CV_16S, 1, 0, ksize=3)  # maybe try 64F? what r these #s
+    cv2.imshow('x', grad_x)
+    cv2.waitKey(0)
     grad_y = cv2.Sobel(img, cv2.CV_16S, 0, 1, ksize=3)
+    cv2.imshow('y', grad_y)
+    cv2.waitKey(0)
 
     # converting back to CV_8U
     abs_grad_x = cv2.convertScaleAbs(grad_x)
+    cv2.imshow('abs x', abs_grad_x)
+    cv2.waitKey(0)
     abs_grad_y = cv2.convertScaleAbs(grad_y)
+    cv2.imshow('abs y', abs_grad_y)
+    cv2.waitKey(0)
 
     # combine gradients
     grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
@@ -72,6 +79,11 @@ def sobel_filter_method_3(img):
     # cv2.waitKey(0)
     return sobel
 
+def canny_filter(img):
+    edges = cv2.Canny(img, 65, 655)
+    cv2.imshow("Canny Gradient w 800 upper bound", edges)
+    cv2.waitKey(0)
+    return edges
 
 # Load all images from Sample Labels
 images = load_images_from_folder('Sample Labels')
@@ -89,11 +101,12 @@ for img in images:
 
 
 # Load UDI sample img
-img = cv2.imread('Sample Labels/375_250-udi_sample.jpg')
+img = cv2.imread('Sample Labels/sample.png')
 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 # Run 3x3 Sobel Filter on image to get gradient
-grad = sobel_filter_method_1(img)
+#grad = sobel_filter_method_1(img)
+grad = canny_filter(img)
 
 # Change gradient to a float
 grad_float = img_as_float(grad)
@@ -108,12 +121,12 @@ cv2.waitKey(0)
 # grad_inverted_float = img_as_float(grad_inverted)
 
 # Subtract height threshold T1 from inverted gradient (in study: 65)
-T1 = 80
+T1 = 65
 
 # Using OpenCV
 grad_subtracted_cv = cv2.subtract(grad_inverted, T1)
-#cv2.imshow('Grad Inverted Subtracted Using CV2', grad_subtracted_cv)
-#cv2.waitKey(0)
+cv2.imshow('Grad Inverted Subtracted Using CV2', grad_subtracted_cv)
+cv2.waitKey(0)
 grad_subtracted_cv_float = img_as_float(grad_subtracted_cv)
 
 
@@ -148,14 +161,16 @@ cv2.waitKey(0)
 
 # Method 3 - METHOD 2 BUT GRAY background, BEST COMPLEMENT
 h = 1
-seed = grad_subtracted_cv_float - 0.4
-mask = grad_subtracted_cv_float
+seed = cv2.subtract(grad_subtracted_cv_float,0.4)
+mask = grad_inverted
 grad_reconstructed_3 = reconstruction(seed, mask, method='dilation')
-hdome3 = grad_subtracted_cv_float - grad_reconstructed_3
-#cv2.imshow('Grad Reconstructed 3 Using Grad Subtracted & H', grad_reconstructed_3)
-#cv2.waitKey(0)
+hdome3 = cv2.subtract(grad_inverted,np.uint8(grad_reconstructed_3))
+cv2.imshow('Grad Reconstructed 3 Using Grad Subtracted & H', grad_reconstructed_3)
+cv2.waitKey(0)
 grad_reconstructed_3_complement = cv2.bitwise_not(hdome3)
-cv2.imshow('Grad Reconstructed 3 Hdome3 Complement', hdome3)
+cv2.imshow('Grad Reconstructed: HDOME3', hdome3)
+cv2.waitKey(0)
+cv2.imshow('Grad Reconstructed Complement', grad_reconstructed_3_complement)
 cv2.waitKey(0)
 
 # Input = grad_reconstructed_3_complement, hdome3, hdome 2
@@ -238,17 +253,18 @@ labeledConnectedComponents = np.copy(stats)
 print(watershed_complement.shape)
 images = 0
 for stat in stats:
+    for i in range(stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1):
+        # Top line of bounding box
+        watershed_complement[stat[cv2.CC_STAT_TOP], i] = 0
+        # Bottom line of bounding box
+        watershed_complement[stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT] - 1, i] = 0
+        # Left line of bounding box
+    # watershed_complement[i, stat[cv2.CC_STAT_LEFT]] = 0
+    # Right line of bounding box
+    # watershed_complement[i, stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1] = 0
     if stat[cv2.CC_STAT_AREA] >= T2:
         images += 1
-        for i in range(stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1):
-            # Top line of bounding box
-            watershed_complement[stat[cv2.CC_STAT_TOP], i] = 0
-            # Bottom line of bounding box
-            watershed_complement[stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT] - 1, i] = 0
-            # Left line of bounding box
-           # watershed_complement[i, stat[cv2.CC_STAT_LEFT]] = 0
-            # Right line of bounding box
-           # watershed_complement[i, stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1] = 0
+
 
 
 print('[INFO]: Total number of connected components: ' + str(numLabels))
