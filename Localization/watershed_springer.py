@@ -80,7 +80,7 @@ def sobel_filter_method_3(img):
     return sobel
 
 def canny_filter(img):
-    edges = cv2.Canny(img, 65, 655)
+    edges = cv2.Canny(img, 65, 650)
     cv2.imshow("Canny Gradient w 800 upper bound", edges)
     cv2.waitKey(0)
     return edges
@@ -101,7 +101,7 @@ for img in images:
 
 
 # Load UDI sample img
-img = cv2.imread('Sample Labels/sample.png')
+img = cv2.imread('Sample Labels/UDI_label_.png')
 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 # Run 3x3 Sobel Filter on image to get gradient
@@ -250,27 +250,39 @@ print(stats)
 T2 = 0.001*h*w
 print(T2)
 labeledConnectedComponents = np.copy(stats)
-print(watershed_complement.shape)
+labeled_img = np.array(watershed_complement)
+labeled_img = cv2.cvtColor(labeled_img, cv2.COLOR_GRAY2BGR)
+print(labeled_img.shape)
 images = 0
 for stat in stats:
-    for i in range(stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1):
+    print(stat[cv2.CC_STAT_LEFT])
+    left = stat[cv2.CC_STAT_LEFT]
+    top = stat[cv2.CC_STAT_TOP]
+    height = stat[cv2.CC_STAT_HEIGHT]
+    width = stat[cv2.CC_STAT_WIDTH]
+    area = stat[cv2.CC_STAT_AREA]
+    right = left + width
+    bottom = top + height
+
+    #for i in range(stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1):
         # Top line of bounding box
-        watershed_complement[stat[cv2.CC_STAT_TOP], i] = 0
+        #watershed_complement[stat[cv2.CC_STAT_TOP], i] = 0
         # Bottom line of bounding box
-        watershed_complement[stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT] - 1, i] = 0
+        #watershed_complement[stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT] - 1, i] = 0
         # Left line of bounding box
-    # watershed_complement[i, stat[cv2.CC_STAT_LEFT]] = 0
-    # Right line of bounding box
-    # watershed_complement[i, stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1] = 0
+        # watershed_complement[i, stat[cv2.CC_STAT_LEFT]] = 0
+        # Right line of bounding box
+        # watershed_complement[i, stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1] = 0
     if stat[cv2.CC_STAT_AREA] >= T2:
         images += 1
-
-
+        cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+    else:
+        cv2.rectangle(labeled_img, (left, top), (right, bottom), (0, 255, 0), thickness=1)
 
 print('[INFO]: Total number of connected components: ' + str(numLabels))
 print('[INFO]: Total number of images classified: ' + str(images))
 print('[INFO]: Total number of texts classified: ' + str(numLabels - images))
-cv2.imshow("partial bounding box on complement", watershed_complement)
+cv2.imshow("partial bounding box on complement", labeled_img)
 cv2.waitKey(0)
 
 
