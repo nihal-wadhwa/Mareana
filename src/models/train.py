@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import re
+import pickle
 import argparse
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
@@ -113,4 +114,11 @@ plt.title("Training Loss and Accuracy")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend(loc="upper left")
-plt.savefig("/Users/dhruv/Desktop/Document-Symbol-Classification/outputs")
+plt.show()
+
+# save the model and label binarizer to disk
+print("[INFO] serializing network and label binarizer...")
+model.save("../output/smallvggnet.model", save_format="h5")
+f = open("../output/smallvggnet_lb.pickle", "wb")
+f.write(pickle.dumps(lb))
+f.close()
