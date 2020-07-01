@@ -14,9 +14,6 @@ from skimage.morphology import reconstruction
 # GOALS
 # 1) Figure out seed/mask
 # 2) Figure out upper number threshold for canny edge
-# 3) Figure out left/right bounding box edges
-
-
 
 # Loads all images from folder
 def load_images_from_folder(folder):
@@ -80,16 +77,76 @@ def sobel_filter_method_3(img):
     return sobel
 
 def canny_filter(img):
-    edges = cv2.Canny(img, 65, 650)
+    edges = cv2.Canny(img, 65, 800)
     cv2.imshow("Canny Gradient w 800 upper bound", edges)
     cv2.waitKey(0)
     return edges
+
+def autocanny(img, sigma=0.33):
+    median = np.median(img)
+    lower = int(max(0, (1.0-sigma)*median))
+    upper = int(min(255, (1.0+sigma)*median))
+    print('Median:' + str(median))
+    print('Lower Bound:' + str(lower))
+    print('Upper Bound:' + str(upper))
+    edged = cv2.Canny(img,lower,upper)
+    cv2.imshow('Auto Canny with ' + str(upper) +' Bound', edged)
+    cv2.waitKey(0)
+    return edged
+
+def watershed_test(original_img, processed_img):
+
+    img = np.copy(original_img)
+    processed_img = cv2.bitwise_not(processed_img)
+    ret, thresh = cv2.threshold(processed_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # noise removal
+    kernel = np.ones((3, 3), np.uint8)
+    # opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
+    closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    # sure background area
+    sure_bg = cv2.dilate(closing, kernel, iterations=3)
+    # Finding sure foreground area
+    dist_transform = cv2.distanceTransform(sure_bg, cv2.DIST_L2, 3)
+
+    # Threshold
+    ret, sure_fg = cv2.threshold(dist_transform, 0.1 * dist_transform.max(), 255, 0)
+
+    # Finding unknown region
+    sure_fg = np.uint8(sure_fg)
+    unknown = cv2.subtract(sure_bg, sure_fg)
+
+    # Marker labelling
+    numLabels, markers, stats, centroids = cv2.connectedComponentsWithStats(sure_fg)
+    print(numLabels)
+
+    # Add one to all labels so that sure background is not 0, but 1
+    markers = markers + 1
+
+    # Now, mark the region of unknown with zero
+    markers[unknown == 255] = 0
+    print(markers.shape)
+    print(markers.dtype)
+    print(processed_img.shape)
+    print(processed_img.dtype)
+    processed_img = cv2.cvtColor(processed_img, cv2.COLOR_GRAY2BGR)
+    markers = cv2.watershed(processed_img, markers)
+    original_img = cv2.cvtColor(original_img, cv2.COLOR_GRAY2BGR)
+    original_img[markers == -1] = [255, 0, 0]
+    markers = np.uint8(markers)
+    cv2.imshow('Watershed-markers from internet', markers)
+    cv2.waitKey(0)
+    cv2.imshow('Watershed original img from internet', original_img)
+    cv2.waitKey(0)
+    print('[INFO] {} unique segments found'.format(len(np.unique(markers)) - 1))
+
 
 # Load all images from Sample Labels
 images = load_images_from_folder('Sample Labels')
 for img in images:
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # cv2.imshow('INPUT', img)
+    cv2.imshow('INPUT', img)
     # cv2.waitKey(0)
 
     # Get gradient using 3x3 Sobel filter
@@ -101,12 +158,14 @@ for img in images:
 
 
 # Load UDI sample img
-img = cv2.imread('Sample Labels/UDI_label_.png')
+img = cv2.imread('Sample Labels/medical-label.jpg')
 img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
+# Initialize T1
 # Run 3x3 Sobel Filter on image to get gradient
 #grad = sobel_filter_method_1(img)
-grad = canny_filter(img)
+grad = autocanny(img, sigma=0.33)
+
+
 
 # Change gradient to a float
 grad_float = img_as_float(grad)
@@ -177,7 +236,8 @@ cv2.waitKey(0)
 
 # Get connected components from pre-processed gradient
 grad_preprocessed_8 = np.uint8(grad_reconstructed_3_complement)
-
+cv2.imshow('Grad preprocessed 8 ', grad_preprocessed_8)
+cv2.waitKey(0)
 # Invert preprocessed gradient
 grad_preprocessed_inverted = cv2.bitwise_not(grad_preprocessed_8)
 grad_preprocessed_inverted = img_as_float(grad_preprocessed_inverted)
@@ -193,6 +253,7 @@ cv2.waitKey(0)
 minima = minima.astype(np.uint8)
 
 numLabels, labels, stats, centroids = cv2.connectedComponentsWithStats(grad_preprocessed_8, connectivity=8)
+print("Num Labels Before Watershed:" + str(numLabels))
 
 print(labels)
 print(labels.shape)
@@ -222,36 +283,20 @@ watershed_complement = cv2.bitwise_not(grad_watershed_to_show_1)
 cv2.imshow('Watershed Complement', watershed_complement)
 cv2.waitKey(0)
 
-#cv2.imshow('Watershed Complement CCs', labels1_to_show)
-#cv2.waitKey(0)
-#output = cv2.connectedComponentsWithStats(watershed_complement, connectivity=8)
-#        for i in range(output[0]):
-#            if output[2][i][4] >= min_thresh and output[2][i][4] <= max_thresh:
-#                cv2.rectangle(frame, (output[2][i][0], output[2][i][1]), (
-#                    output[2][i][0] + output[2][i][2], output[2][i][1] + output[2][i][3]), (0, 255, 0), 2)
-#        cv2.imshow('detection', frame)
-
-# watershed_floodfill = np.copy(watershed_complement)
-# h, w = watershed_complement.shape[:2]
-# mask = np.ones((h+2, w+2), np.uint8)
-# num, im, mask, rect = cv2.floodFill(watershed_floodfill, mask, (0,0),255)
-# print(num)
-# cv2.imshow('Floodfill', mask)
-# cv2.waitKey(0)
-# floodfill_inv = cv2.bitwise_not(mask)
-# cv2.imshow('Inverted Floodfill', floodfill_inv)
-# cv2.waitKey(0)
-# floodfill_combined = watershed_complement | floodfill_inv
-# cv2.imshow('Combined Floodfill', floodfill_combined)
-# cv2.waitKey(0)
+print('[INFO] {} unique segments found'.format(len(np.unique(watershed_complement)) - 1))
 
 h, w = labels.shape
 print(stats)
 T2 = 0.001*h*w
 print(T2)
-labeledConnectedComponents = np.copy(stats)
 labeled_img = np.array(watershed_complement)
+labeled_original_img = np.array(img)
 labeled_img = cv2.cvtColor(labeled_img, cv2.COLOR_GRAY2BGR)
+img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+img[grad_watershed_1 == -1] = [255,0,0]
+cv2.imshow("img?", img)
+cv2.waitKey(0)
+labeled_original_img = cv2.cvtColor(labeled_original_img, cv2.COLOR_GRAY2BGR)
 print(labeled_img.shape)
 images = 0
 for stat in stats:
@@ -263,26 +308,19 @@ for stat in stats:
     area = stat[cv2.CC_STAT_AREA]
     right = left + width
     bottom = top + height
-
-    #for i in range(stat[cv2.CC_STAT_LEFT], stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1):
-        # Top line of bounding box
-        #watershed_complement[stat[cv2.CC_STAT_TOP], i] = 0
-        # Bottom line of bounding box
-        #watershed_complement[stat[cv2.CC_STAT_TOP] + stat[cv2.CC_STAT_HEIGHT] - 1, i] = 0
-        # Left line of bounding box
-        # watershed_complement[i, stat[cv2.CC_STAT_LEFT]] = 0
-        # Right line of bounding box
-        # watershed_complement[i, stat[cv2.CC_STAT_LEFT] + stat[cv2.CC_STAT_WIDTH] - 1] = 0
-    if stat[cv2.CC_STAT_AREA] >= T2:
+    if area >= T2:
         images += 1
         cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+        cv2.rectangle(labeled_original_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+
     else:
         cv2.rectangle(labeled_img, (left, top), (right, bottom), (0, 255, 0), thickness=1)
+        cv2.rectangle(labeled_original_img, (left, top), (right, bottom), (0, 255, 0), thickness=1)
 
 print('[INFO]: Total number of connected components: ' + str(numLabels))
 print('[INFO]: Total number of images classified: ' + str(images))
 print('[INFO]: Total number of texts classified: ' + str(numLabels - images))
-cv2.imshow("partial bounding box on complement", labeled_img)
+cv2.imshow("partial bounding box on original image", labeled_original_img)
 cv2.waitKey(0)
 
 
