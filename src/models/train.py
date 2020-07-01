@@ -4,34 +4,53 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import re
+import argparse
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import SGD
+from small_vggnet import SmallVGGNet
+from initial_neural_net import InitialNN
+
+
+# construct the argument parser and parse the arguments
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', type=str, default=None,
+                    help="""
+                    Path of the image when we want to perform document segmentation
+                    """)
+args = vars(parser.parse_args())
 
 # Read images from dataset
 data, labels = [], []
-main = "val/"
+main = "../../val/"
 folder = [os.path.join(main, folder) for folder in os.listdir(main)]
 symbols = [os.path.join(d,f) for d in folder for f in os.listdir(d)]
 
 for symbol in symbols:
     image = cv2.imread(symbol)
-    image = cv2.resize(image, (32, 32)).flatten()
+    if args['model'] == 'nnet':
+        image = cv2.resize(image, (32, 32)).flatten()
+    elif args['model'] == 'vggnet':
+        image = cv2.resize(image, (32, 32))
+    
     data.append(image)
     label = symbol.split(os.path.sep)[-2].split(".")[0]
     label = re.sub('\_\d*', '', label)
     labels.append(label)
+
+
 # Preprocessing - uniform dimensions? image enhancement?
 ## scale the raw pixel intensities to the range [0, 1]
-print(label)
-data = np.array(data) / 255.0
+
+data = np.array(data, dtype="float") / 255.0
 labels = np.array(labels)
 
 (trainX, testX, trainY, testY) = train_test_split(data,
-	labels, test_size=0.25, random_state=42)
+	labels, test_size=0.20, random_state=42)
+
+
+
 
 # convert the labels from integers to vectors (for 2-class, binary
 # classification you should use Keras' to_categorical function
@@ -48,14 +67,22 @@ testY = lb.transform(testY)
 
 
 
-model = Sequential()
-model.add(Dense(1024, input_shape=(3072,), activation="sigmoid"))
-model.add(Dense(512, activation="sigmoid"))
-model.add(Dense(len(lb.classes_), activation="softmax"))
+
+# Initialize model type
+if args['model'] == 'nnet':
+    model = InitialNN.build(lb)
+
+elif args['model'] == 'vggnet':
+    # initialize our VGG-like Convolutional Neural Network
+    model = SmallVGGNet.build(width=32, height=32, depth=3,
+    classes=len(lb.classes_))
+
+
 
 # initialize our initial learning rate and # of epochs to train for
 INIT_LR = 0.01
-EPOCHS = 25
+EPOCHS = 15
+BS = 32
 # compile the model using SGD as our optimizer and categorical
 # cross-entropy loss (you'll want to use binary_crossentropy
 # for 2-class classification)
@@ -86,4 +113,4 @@ plt.title("Training Loss and Accuracy")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss/Accuracy")
 plt.legend(loc="upper left")
-plt.savefig("/Users/dhruv/Desktop/Document-Symbol-Classification/output")
+plt.savefig("/Users/dhruv/Desktop/Document-Symbol-Classification/outputs")
