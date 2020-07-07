@@ -82,7 +82,7 @@ elif args['model'] == 'vggnet':
 
 # initialize our initial learning rate and # of epochs to train for
 INIT_LR = 0.01
-EPOCHS = 30
+EPOCHS = 15
 BS = 32
 # compile the model using SGD as our optimizer and categorical
 # cross-entropy loss (you'll want to use binary_crossentropy
