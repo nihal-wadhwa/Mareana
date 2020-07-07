@@ -82,7 +82,7 @@ elif args['model'] == 'vggnet':
 
 # initialize our initial learning rate and # of epochs to train for
 INIT_LR = 0.01
-EPOCHS = 15
+EPOCHS = 30
 BS = 32
 # compile the model using SGD as our optimizer and categorical
 # cross-entropy loss (you'll want to use binary_crossentropy
@@ -118,7 +118,7 @@ plt.show()
 
 # save the model and label binarizer to disk
 print("[INFO] serializing network and label binarizer...")
-model.save("../output/smallvggnet.model", save_format="h5")
-f = open("../output/smallvggnet_lb.pickle", "wb")
+model.save("../output/{}.model".format(args['model']), save_format="h5")
+f = open("../output/{}_lb.pickle".format(args['model']), "wb")
 f.write(pickle.dumps(lb))
 f.close()
