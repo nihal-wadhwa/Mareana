@@ -14,7 +14,11 @@ from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 from skimage import img_as_float
 import os
-from skimage.morphology import reconstruction
+from skimage.morphology import reconstruction, rectangle
+from scipy.ndimage import binary_erosion
+from skimage.color import rgb2gray
+
+
 
 
 
@@ -61,37 +65,32 @@ def canny_filter(img, sigma = 0.33):
 
 def pre_processing(img):
     img = cv2.imread(img)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    original_img = np.copy(img)
+    img = rgb2gray(img)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
    
     # Run 3x3 Canny Filter on image to get gradient
-    grad = canny_filter(img,sigma=0.33)
+    # grad = canny_filter(img,sigma=0.33)
+    dimensions = img.shape
 
-   
-    # Invert image --> 1-gradient
-    # grad_inverted = cv2.bitwise_not(grad)
-    # cv2.imshow('Grad Inverted', grad_inverted)
-    # cv2.waitKey(0)
+    # height and width of image
+    height = img.shape[0]
+    width = img.shape[1]
 
-    # Subtract height threshold T1 from inverted gradient (in study: 65)
-    # T1 = 65
-    # Using OpenCV
-    # grad_subtracted_cv = cv2.subtract(grad_inverted, T1)
-    # grad_subtracted_cv_float = img_as_float(grad_subtracted_cv)
+    th = 0.6
+    img[img <= th] = 0
+    img[img > th] = 1
+    img = 1 - img
+    cv2.imshow('Mask', img)
+    cv2.waitKey(0)
 
-    # Reconstruction/Dilation (needs to be changed)
-    # seed = cv2.subtract(grad_subtracted_cv_float, 0.4)
-    # mask = grad_inverted
-    # grad_reconstructed = reconstruction(seed, mask, method='dilation')
-    # hdome = cv2.subtract(grad_inverted, np.uint8(grad_reconstructed))
-    # grad_reconstructed_complement = cv2.bitwise_not(hdome)
+    mask = img
+    seed = binary_erosion(img, rectangle(1, int(.015 * width)))  # 1,4 for fda, 1,30 for UDI
+    recon = reconstruction(seed, mask, 'dilation')
+    cv2.imshow('Output', recon)
+    cv2.waitKey(0)
 
-    # cv2.imshow('Grad Reconstructed 3 Using Grad Subtracted & H', grad_reconstructed)
-    # cv2.waitKey(0)
-    # cv2.imshow('Grad Reconstructed: HDOME', hdome)
-    # cv2.waitKey(0)
-    # cv2.imshow('Grad Reconstructed Complement', grad_reconstructed_complement)
-    # cv2.waitKey(0)
-    return img, grad
+    return original_img, recon
 
 def watershed_test(original_img, processed_img):
 
@@ -170,15 +169,7 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
     T2 = 0.001*h*w
 
     labeled_img = np.array(original_img)
-    labeled_img = cv2.cvtColor(labeled_img, cv2.COLOR_GRAY2BGR)
-    size_labeled_original_img = np.array(original_img)
-    size_labeled_original_img = cv2.cvtColor(size_labeled_original_img, cv2.COLOR_GRAY2BGR)
-    aspectratio_labeled_original_img = np.array(original_img)
-    aspectratio_labeled_original_img = cv2.cvtColor(aspectratio_labeled_original_img, cv2.COLOR_GRAY2BGR)
-    # print(labeled_img.shape)
     filtered_images = 0
-    size_filtered_images = 0
-    aspectratio_filtered_images = 0
     returned_bounding_boxes = []
     for stat in stats:
         left = stat[cv2.CC_STAT_LEFT]
@@ -207,14 +198,12 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
     return original_img, labeled_img, returned_bounding_boxes
 
 
-
-
 #def text_merging(img):
 
 
 #Run Localization
 
-original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
+original, pre_processed = pre_processing('Sample Labels/journal.pone.0165002.g003.png')
 original, segmented, label, statistics, numLabel = watershed_segmentation(original, pre_processed)
 original_img, labeled_img, bounding_box_array = filtering(original, segmented, label, statistics, numLabel)
 
