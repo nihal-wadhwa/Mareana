@@ -128,10 +128,10 @@ plt.show()
 
 # save the model and label binarizer to disk
 print("[INFO] serializing network and label binarizer...")
-model_save_path = "../output/" + args["model"] + ".model"
-pickle_save_path = "../output/" + args["model"] + "_lb.pickle"
-model.save(model_save_path, save_format="h5")
-f = open(pickle_save_path, "wb")
+
+model.save("../output/{}.model".format(args['model']), save_format="h5")
+f = open("../output/{}_lb.pickle".format(args['model']), "wb")
+
 f.write(pickle.dumps(lb))
 f.close()
 
