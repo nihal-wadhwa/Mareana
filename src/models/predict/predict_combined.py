@@ -4,6 +4,7 @@ import argparse
 import pickle
 import sys
 import os
+
 # CHANGE TO SYSTEM PATH TO LOCALIZATION SCRIPT
 sys.path.append(os.path.abspath("~/mareana/mareana-repo/Localization"))
 from Localization import *
@@ -11,8 +12,9 @@ from Localization import *
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', type=str, default=None,
     help="Path of the image we want to classify")
-parser.add_argument("--model", type=int, default=-1,
+parser.add_argument("--model", type=str, default=None,
 	help="Type of model")
+
 args = vars(parser.parse_args())
 
 original, pre_processed = pre_processing(args['image'])
@@ -21,8 +23,8 @@ original_img, labeled_img, bounding_box_array = filtering(original, segmented, l
 
 # load the model and label binarizer
 print("[INFO] loading network and label binarizer...")
-model = load_model("../output/{}.model".format(args['model']))
-lb = pickle.loads(open("../output/{}_lb.pickle".format(args['model']), "rb").read())
+model = load_model("../../output/{}.model".format(args['model']))
+lb = pickle.loads(open("../../output/{}_lb.pickle".format(args['model']), "rb").read())
 
 # make a prediction on the images
 for image in bounding_box_array:
