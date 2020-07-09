@@ -8,10 +8,11 @@ parser.add_argument('--image', type=str, default=None,
     help="Path of the image we want to classify")
 parser.add_argument("--model", type=int, default=-1,
 	help="Type of model")
+
 args = vars(parser.parse_args())
 
 # load the input image and resize it to the target spatial dimensions
-image = cv2.imread(args["image"])
+image = cv2.imread(args['image'])
 output = image.copy()
 image = cv2.resize(image, (32, 32))
 # scale the pixel values to [0, 1]
@@ -30,8 +31,10 @@ else:
 
 # load the model and label binarizer
 print("[INFO] loading network and label binarizer...")
+
 model = load_model("../output/{}.model".format(args['model']))
 lb = pickle.loads(open("../output/{}_lb.pickle".format(args['model']), "rb").read())
+
 # make a prediction on the image
 preds = model.predict(image)
 # find the class label index with the largest corresponding
@@ -46,4 +49,5 @@ cv2.putText(output, text, (8, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
 	(0, 0, 255), 1, cv2.LINE_AA)
 # show the output image
 cv2.imshow("Image", output)
+print("0")
 cv2.waitKey(0)
