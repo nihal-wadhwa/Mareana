@@ -1,5 +1,4 @@
 import os
-import PIL
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -10,21 +9,10 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.models import Sequential
-from tensorflow.keras import Input
-from tensorflow.keras.layers import BatchNormalization
-from tensorflow.keras.layers import ZeroPadding2D
-from tensorflow.keras.layers import Conv2D
-from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.layers import Activation
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.initializers import GlorotUniform as glorot_uniform
-from tensorflow.keras import backend as K
 from small_vggnet import SmallVGGNet
 from initial_neural_net import InitialNN
 from resnet import ResNet50, identity_block, conv_block
+
 # construct the argument parser and parse the arguments
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', type=str, default=None,
@@ -41,12 +29,12 @@ symbols = [os.path.join(d, f) for d in folder for f in os.listdir(d)]
 
 for symbol in symbols:
     image = cv2.imread(symbol)
+    
     if args['model'] == 'nnet':
         image = cv2.resize(image, (32, 32)).flatten()
-    elif args['model'] == 'vggnet':
+    else:
         image = cv2.resize(image, (32, 32))
-    elif args['model'] == 'resnet':
-        image = cv2.resize(image, (32, 32))
+
     data.append(image)
     label = symbol.split(os.path.sep)[-2].split(".")[0]
     label = re.sub('\_\d*', '', label)
