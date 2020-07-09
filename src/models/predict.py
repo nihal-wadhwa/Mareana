@@ -6,8 +6,8 @@ import cv2
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', type=str, default=None,
     help="Path of the image we want to classify")
-parser.add_argument("--flatten", type=int, default=-1,
-	help="Whether or not we should flatten the image")
+parser.add_argument("--model", type=int, default=-1,
+	help="Type of model")
 args = vars(parser.parse_args())
 
 # load the input image and resize it to the target spatial dimensions
@@ -19,7 +19,7 @@ image = image.astype("float") / 255.0
 
 # check to see if we should flatten the image and add a batch
 # dimension
-if args["flatten"] > 0:
+if args["model"] == 'nnet':
 	image = image.flatten()
 	image = image.reshape((1, image.shape[0]))
 # otherwise, we must be working with a CNN -- don't flatten the
@@ -30,8 +30,8 @@ else:
 
 # load the model and label binarizer
 print("[INFO] loading network and label binarizer...")
-model = load_model("/Users/dhruv/Desktop/Document-Symbol-Classification/src/output/initial_nn.model")
-lb = pickle.loads(open("/Users/dhruv/Desktop/Document-Symbol-Classification/src/output/initial_nn_lb.pickle", "rb").read())
+model = load_model("../output/{}.model".format(args['model']))
+lb = pickle.loads(open("../output/{}_lb.pickle".format(args['model']), "rb").read())
 # make a prediction on the image
 preds = model.predict(image)
 # find the class label index with the largest corresponding
