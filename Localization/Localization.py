@@ -119,6 +119,7 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
     labeled_img = np.array(original_img)
     filtered_images = 0
     returned_bounding_boxes = []
+    bounding_box_locations = []
     for stat in stats:
         left = stat[cv2.CC_STAT_LEFT]
         top = stat[cv2.CC_STAT_TOP]
@@ -132,6 +133,7 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
             if area >= T2 or 0.75 <= aspectratio <= 1.25:  # image
                 filtered_images += 1
                 returned_bounding_boxes.append(original_img[top:bottom + 1, left:right + 1])
+                bounding_box_locations.append((left, top))
                 cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
 
             else:  # text
@@ -143,7 +145,7 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
     cv2.imshow("Bounding boxes on original image by size & aspect ratio", labeled_img)
     cv2.waitKey(0)
     # Returns original image, labeled image with bounding boxes, & array of matrices of bounding boxes
-    return original_img, labeled_img, returned_bounding_boxes
+    return original_img, labeled_img, returned_bounding_boxes, bounding_box_locations
 
 
 #def text_merging(img):
@@ -153,7 +155,7 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
 
 original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
 original, segmented, label, statistics, numLabel = watershed_segmentation(original, pre_processed)
-original_img, labeled_img, bounding_box_array = filtering(original, segmented, label, statistics, numLabel)
+original_img, labeled_img, bounding_box_array, bounding_box_locations = filtering(original, segmented, label, statistics, numLabel)
 
 #all_images_tester('Sample Labels')
 
