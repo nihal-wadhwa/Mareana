@@ -142,8 +142,8 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
     print('[INFO]: Total number of connected components: ' + str(numLabels))
     print('[INFO]: Total number of images classified by size: ' + str(filtered_images))
     print('[INFO]: Total number of texts classified by size: ' + str(numLabels - filtered_images))
-    cv2.imshow("Bounding boxes on original image by size & aspect ratio", labeled_img)
-    cv2.waitKey(0)
+   # cv2.imshow("Bounding boxes on original image by size & aspect ratio", labeled_img)
+   # cv2.waitKey(0)
     # Returns original image, labeled image with bounding boxes, & array of matrices of bounding boxes
     return original_img, labeled_img, returned_bounding_boxes, bounding_box_locations
 
@@ -152,10 +152,10 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
 
 
 #Run Localization
-
+'''
 original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
 original, segmented, label, statistics, numLabel = watershed_segmentation(original, pre_processed)
 original_img, labeled_img, bounding_box_array, bounding_box_locations = filtering(original, segmented, label, statistics, numLabel)
-
+'''
 #all_images_tester('Sample Labels')
 
