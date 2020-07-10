@@ -23,9 +23,8 @@ from skimage.color import rgb2gray
 
 
 # GOALS
-# 1) Actually do dilate & reconstruction (Nihal)
-# 2) Delete bounding boxes inside bigger ones, merge overlapping boxes (not touching ones) --> run while loop until no
-#    bounding boxes overlap, redetermine parameters for size classification (T2) (Silvi/Shivani)
+# 1) Somehow mark bounding boxes inside bigger ones, maybe merge overlapping boxes? (not touching ones) -->
+#  run while loop until no bounding boxes overlap (Silvi/Shivani)
 
 
 
@@ -55,111 +54,60 @@ def canny_filter(img, sigma = 0.33):
     median = np.median(img)
     lower = int(max(0, (1.0 - sigma) * median))
     upper = int(min(255, (1.0 + sigma) * median))
-    # print('Median:' + str(median))
-    # print('Lower Bound:' + str(lower))
-    # print('Upper Bound:' + str(upper))
     edged = cv2.Canny(img, lower, upper)
-    cv2.imshow('Auto Canny with ' + str(upper) + ' Bound', edged)
-    cv2.waitKey(0)
+    # cv2.imshow('Auto Canny with ' + str(upper) + ' Bound', edged)
+    # cv2.waitKey(0)
     return edged
 
 def pre_processing(img):
     img = cv2.imread(img)
     original_img = np.copy(img)
-    img = rgb2gray(img)
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-   
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # img = rgb2gray(img)
+
     # Run 3x3 Canny Filter on image to get gradient
-    # grad = canny_filter(img,sigma=0.33)
-    dimensions = img.shape
+    grad = canny_filter(img,sigma=0.33)
+
+    # dimensions = img.shape
 
     # height and width of image
-    height = img.shape[0]
-    width = img.shape[1]
+    # height = img.shape[0]
+    # width = img.shape[1]
+    # aspectratio = width / height
+    # size = width * height
+    # print("Aspect Ratio: " + str(aspectratio))
+    # print('Size: ' + str(size))
 
-    th = 0.6
-    img[img <= th] = 0
-    img[img > th] = 1
-    img = 1 - img
-    cv2.imshow('Mask', img)
-    cv2.waitKey(0)
+    # th = 0.6
+    # img[img <= th] = 0
+    # img[img > th] = 1
+    # img = 1 - img
+    # cv2.imshow('Mask', img)
+    # cv2.waitKey(0)
 
-    mask = img
-    seed = binary_erosion(img, rectangle(1, int(.015 * width)))  # 1,4 for fda, 1,30 for UDI
-    recon = reconstruction(seed, mask, 'dilation')
-    cv2.imshow('Output', recon)
-    cv2.waitKey(0)
+    # mask = img
+    # seed = binary_erosion(img, rectangle(2, int(.015 * width)))  # 1,4 for fda, 1,30 for UDI (norm 0.015)
+    # recon = reconstruction(seed, mask, 'dilation')
+    # cv2.imshow('Output', recon)
+    # cv2.waitKey(0)
 
-    return original_img, recon
+    return original_img, grad
 
-def watershed_test(original_img, processed_img):
-
-    img = np.copy(original_img)
-    processed_img = cv2.bitwise_not(processed_img)
-    ret, thresh = cv2.threshold(processed_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-
-    # noise removal
-    kernel = np.ones((3, 3), np.uint8)
-    # opening = cv2.morphologyEx(thresh,cv2.MORPH_OPEN,kernel, iterations = 2)
-    closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=2)
-
-    # sure background area
-    sure_bg = cv2.dilate(closing, kernel, iterations=3)
-    # Finding sure foreground area
-    dist_transform = cv2.distanceTransform(sure_bg, cv2.DIST_L2, 3)
-
-    # Threshold
-    ret, sure_fg = cv2.threshold(dist_transform, 0.1 * dist_transform.max(), 255, 0)
-
-    # Finding unknown region
-    sure_fg = np.uint8(sure_fg)
-    unknown = cv2.subtract(sure_bg, sure_fg)
-
-    # Marker labelling
-    numLabels, markers, stats, centroids = cv2.connectedComponentsWithStats(sure_fg)
-    # print(numLabels)
-
-    # Add one to all labels so that sure background is not 0, but 1
-    markers = markers + 1
-
-    # Now, mark the region of unknown with zero
-    markers[unknown == 255] = 0
-    # print(markers.shape)
-    # print(markers.dtype)
-    # print(processed_img.shape)
-    # print(processed_img.dtype)
-    processed_img = cv2.cvtColor(processed_img, cv2.COLOR_GRAY2BGR)
-    markers = cv2.watershed(processed_img, markers)
-    original_img = cv2.cvtColor(original_img, cv2.COLOR_GRAY2BGR)
-    original_img[markers == -1] = [255, 0, 0]
-    markers = np.uint8(markers)
-    cv2.imshow('Watershed-markers from internet', markers)
-    cv2.waitKey(0)
-    cv2.imshow('Watershed original img from internet', original_img)
-    cv2.waitKey(0)
-    # print('[INFO] {} unique segments found'.format(len(np.unique(markers)) - 1))
 
 def watershed_segmentation(original_img, processed_img):
     # Get connected components from pre-processed gradient
    grad_preprocessed = np.uint8(processed_img)
-
    numLabels, labels, stats, centroids = cv2.connectedComponentsWithStats(grad_preprocessed, connectivity=8)
-   # print(numLabels)
 
-    # Watershed on gradient using OpenCV (Meyer) - Method 1
+    # Watershed on gradient using OpenCV (Meyer)
    grad_preprocessed = cv2.cvtColor(grad_preprocessed, cv2.COLOR_GRAY2BGR)
    grad_watershed = cv2.watershed(grad_preprocessed, labels)
-
    grad_watershed_to_show = grad_watershed.astype(np.uint8)
-   #cv2.imshow('Watershed with Labels as Markers OpenCV', grad_watershed_to_show)
-   #cv2.waitKey(0)
-
-   # Watershed on gradient using skimage - Method 2 *TO-DO*
 
    # Get complement of watershed image
    watershed_complement = cv2.bitwise_not(grad_watershed_to_show)
-   cv2.imshow('Watershed Complement', watershed_complement)
-   cv2.waitKey(0)
+   # cv2.imshow('Watershed Complement', watershed_complement)
+   # cv2.waitKey(0)
    return original_img, watershed_complement, labels, stats, numLabels
 
 
@@ -203,7 +151,7 @@ def filtering(original_img, segmented_img,labels,stats,numLabels):
 
 #Run Localization
 
-original, pre_processed = pre_processing('Sample Labels/journal.pone.0165002.g003.png')
+original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
 original, segmented, label, statistics, numLabel = watershed_segmentation(original, pre_processed)
 original_img, labeled_img, bounding_box_array = filtering(original, segmented, label, statistics, numLabel)
 
