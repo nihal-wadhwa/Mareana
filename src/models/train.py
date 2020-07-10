@@ -23,7 +23,7 @@ args = vars(parser.parse_args())
 
 # Read images from dataset
 data, labels = [], []
-main = "../../val/"
+main = "../../train/"
 folder = [os.path.join(main, folder) for folder in os.listdir(main)]
 symbols = [os.path.join(d, f) for d in folder for f in os.listdir(d)]
 
@@ -31,9 +31,9 @@ for symbol in symbols:
     image = cv2.imread(symbol)
     
     if args['model'] == 'nnet':
-        image = cv2.resize(image, (32, 32)).flatten()
+        image = cv2.resize(image, (64, 64)).flatten()
     else:
-        image = cv2.resize(image, (32, 32))
+        image = cv2.resize(image, (64, 64))
 
     data.append(image)
     label = symbol.split(os.path.sep)[-2].split(".")[0]
@@ -48,7 +48,7 @@ data = np.array(data, dtype="float") / 255.0
 labels = np.array(labels)
 
 (trainX, testX, trainY, testY) = train_test_split(data,
-                                                  labels, test_size=0.20, random_state=42)
+                                                  labels, test_size=0.25, random_state=42)
 
 
 # convert the labels from integers to vectors (for 2-class, binary
@@ -71,16 +71,16 @@ if args['model'] == 'nnet':
 
 elif args['model'] == 'vggnet':
     # initialize our VGG-like Convolutional Neural Network
-    model = SmallVGGNet.build(width=32, height=32, depth=3,
+    model = SmallVGGNet.build(width=64, height=64, depth=3,
                               classes=len(lb.classes_))
 elif args['model'] == 'resnet':
-    model = ResNet50(input_shape=(32, 32, 3), classes=len(lb.classes_))
+    model = ResNet50(input_shape=(64, 64, 3), classes=len(lb.classes_))
 
 print(labels)
 print('lb.classes: ', lb.classes_)
 # initialize our initial learning rate and # of epochs to train for
 INIT_LR = 0.01
-EPOCHS = 1
+EPOCHS = 12
 BS = 32
 # compile the model using SGD as our optimizer and categorical
 # cross-entropy loss (you'll want to use binary_crossentropy
