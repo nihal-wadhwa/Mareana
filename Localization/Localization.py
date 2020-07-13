@@ -204,11 +204,13 @@ def fix_bounding_boxes(image_regions, text_regions, original_img, labeled_img):
 
 def text_merging(original_img, labeled_img, text_regions, image_regions):
     delta = -1
-
+    returned_bounding_boxes = []
+    bounding_box_locations = []
     numimgregions = len(image_regions)
     while delta != 0:
         numimgregions = len(list(image_regions))
-        dellist = []
+        imgdellist = []
+        textdellist = []
         tempimgregions = image_regions.copy()
         temptextregions = text_regions.copy()
         for i, regioni in enumerate(tempimgregions):
@@ -218,18 +220,29 @@ def text_merging(original_img, labeled_img, text_regions, image_regions):
                     merged = DoMerge(regioni, regiont, xbuffer=2, ybuffer=2,fortext=True)
                     if merged:
                         numTextInRegion += 1
-                        dellist.append(j)
+                        textdellist.append(j)
             if numTextInRegion / (numTextInRegion + 1) >= .80:
                 #make img text
+                imgdellist.append(i)
                 cv2.rectangle(original_img, (regioni[0], regioni[1]), (regioni[0] + regioni[2], regioni[1] + regioni[3]),
                               (0, 255, 0), thickness=1)
-        for index in sorted(set(dellist), reverse=True):
+        for index in sorted(set(textdellist), reverse=True):
             temptextregions = np.delete(temptextregions, index, axis=0)
-        regions = tempimgregions.copy()
-        delta = numimgregions - len(regions)
+        delta = 0
+    for index in sorted(set(imgdellist), reverse=True):
+        tempimgregions = np.delete(tempimgregions, index, axis=0)
+    regions = tempimgregions.copy()
     cv2.imshow('Text Merged Img', original_img)
     cv2.waitKey(0)
-    return regions
+    for region in regions:
+        left = region[0]
+        top = region[1]
+        right = left + region[2]
+        bottom = top + region[3]
+        returned_bounding_boxes.append(original_img[top:bottom + 1, left:right + 1])
+        bounding_box_locations.append((left, top))
+
+    return regions, returned_bounding_boxes, bounding_box_locations
 
 
 
@@ -239,6 +252,6 @@ original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-d
 original, label, statistics, numLabel = segmentation(original, pre_processed)
 original_img, text_labeled_img, text_regions, image_regions, text_labeled_img = filtering(original, label, statistics, numLabel)
 original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = fix_bounding_boxes(image_regions, text_regions, original_img, text_labeled_img)
-text_merging(original_img, labeled_img,text_regions,image_regions)
+regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
 #all_images_tester('Sample Labels')
 
