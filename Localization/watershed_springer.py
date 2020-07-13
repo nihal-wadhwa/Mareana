@@ -7,8 +7,9 @@ from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 from skimage import img_as_float
 import os
-from skimage.morphology import reconstruction
-
+from skimage.morphology import reconstruction, rectangle
+from scipy.ndimage import binary_erosion
+from skimage.color import rgb2gray
 
 
 # GOALS
@@ -93,6 +94,32 @@ def autocanny(img, sigma=0.33):
     cv2.imshow('Auto Canny with ' + str(upper) +' Bound', edged)
     cv2.waitKey(0)
     return edged
+
+def dilationreconstruction(img):
+    img = cv2.imread(img)
+    img = rgb2gray(img)
+    dimensions = img.shape
+
+    # height and width of image
+    # height = img.shape[0]
+    # width = img.shape[1]
+    # aspectratio = width / height
+    # size = width * height
+    # print("Aspect Ratio: " + str(aspectratio))
+    # print('Size: ' + str(size))
+
+    # th = 0.6
+    # img[img <= th] = 0
+    # img[img > th] = 1
+    # img = 1 - img
+    # cv2.imshow('Mask', img)
+    # cv2.waitKey(0)
+
+    # mask = img
+    # seed = binary_erosion(img, rectangle(2, int(.015 * width)))  # 1,4 for fda, 1,30 for UDI (norm 0.015)
+    # recon = reconstruction(seed, mask, 'dilation')
+    # cv2.imshow('Output', recon)
+    # cv2.waitKey(0)
 
 def watershed_test(original_img, processed_img):
 
