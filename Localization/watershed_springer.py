@@ -286,6 +286,7 @@ cv2.waitKey(0)
 print('[INFO] {} unique segments found'.format(len(np.unique(watershed_complement)) - 1))
 
 h, w = labels.shape
+image_size = h*w
 print(stats)
 T2 = 0.001*h*w
 print(T2)
@@ -299,6 +300,17 @@ cv2.waitKey(0)
 labeled_original_img = cv2.cvtColor(labeled_original_img, cv2.COLOR_GRAY2BGR)
 print(labeled_img.shape)
 images = 0
+
+# Arrays to store bounding boxes by location
+numSections = 4
+bounding_box_quad_TL = []
+bounding_box_quad_TR = []
+bounding_box_quad_BL = []
+bounding_box_quad_BR = []
+
+filtered_images = 0
+returned_bounding_boxes = []
+bounding_box_locations = []
 for stat in stats:
     print(stat[cv2.CC_STAT_LEFT])
     left = stat[cv2.CC_STAT_LEFT]
@@ -308,14 +320,73 @@ for stat in stats:
     area = stat[cv2.CC_STAT_AREA]
     right = left + width
     bottom = top + height
-    if area >= T2:
-        images += 1
-        cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
-        cv2.rectangle(labeled_original_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+    aspectratio = width / height
+    if 4 <= area <= (.75 * image_size) and width < (.75 * w) and height < (.75 * h):
+        if area >= T2 or 0.75 <= aspectratio <= 1.25:  # image
+            coord = (left, top, right, bottom)
+            if left < w / 2 and top < h / 2:  # in top left quadrant
+                if len(bounding_box_quad_TL) < 1:
+                    bounding_box_quad_TL.append(coord)
+                    filtered_images += 1
+                    returned_bounding_boxes.append(original_img[top:bottom + 1, left:right + 1])
+                    bounding_box_locations.append((left, top))
+                    cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+                else:
+                    for i in range(len(bounding_box_quad_TL)):
+                        if left >= bounding_box_quad_TL[i][0] and top >= bounding_box_quad_TL[i][1] and right <= \
+                                bounding_box_quad_TL[i][2] and bottom <= bounding_box_quad_TL[i][3]:
+                            print('cc inside larger cc')
+                            # bounding box is inside larger bounding box --> do nothing
+                        else:
+                            bounding_box_quad_TL.append(coord)
+                            filtered_images += 1
+                            returned_bounding_boxes.append(original_img[top:bottom + 1, left:right + 1])
+                            bounding_box_locations.append((left, top))
+                            cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+                cv2.imshow("Bounding boxes on original image by size & aspect ratio", labeled_img)
+                cv2.waitKey(0)
+            if left < w / 2 and top >= h / 2:  # in bottom left quadrant
+                for i in range(len(bounding_box_quad_BL)):
+                    if left >= bounding_box_quad_BL[i][0] and top >= bounding_box_quad_BL[i][1] and right <= \
+                            bounding_box_quad_BL[i][2] and bottom <= bounding_box_quad_BL[i][3]:
+                        print('cc inside larger cc')
+                        # bounding box is inside larger bounding box --> do nothing
+                    else:
+                        print('hello')
+                        bounding_box_quad_BL.append(coord)
+                        filtered_images += 1
+                        returned_bounding_boxes.append(original_img[top:bottom + 1, left:right + 1])
+                        bounding_box_locations.append((left, top))
+                        cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+            if left >= w / 2 and top < h / 2:  # in top right quadrant
+                for i in range(len(bounding_box_quad_TR)):
+                    if left >= bounding_box_quad_TR[i][0] and top >= bounding_box_quad_TR[i][1] and right <= \
+                            bounding_box_quad_TR[i][2] and bottom <= bounding_box_quad_TR[i][3]:
+                        print('cc inside larger cc')
+                        # bounding box is inside larger bounding box --> do nothing
+                    else:
+                        print('hello')
+                        bounding_box_quad_TR.append(coord)
+                        filtered_images += 1
+                        returned_bounding_boxes.append(original_img[top:bottom + 1, left:right + 1])
+                        bounding_box_locations.append((left, top))
+                        cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
 
-    else:
-        cv2.rectangle(labeled_img, (left, top), (right, bottom), (0, 255, 0), thickness=1)
-        cv2.rectangle(labeled_original_img, (left, top), (right, bottom), (0, 255, 0), thickness=1)
+            if left >= w / 2 and top >= h / 2:  # in bottom right quadrant
+                for i in range(len(bounding_box_quad_BR)):
+                    if left >= bounding_box_quad_BR[i][0] and top >= bounding_box_quad_BR[i][1] and right <= \
+                            bounding_box_quad_BR[i][2] and bottom <= bounding_box_quad_BR[i][3]:
+                        print('cc inside larger cc')
+                        # bounding box is inside larger bounding box --> do nothing
+                    else:
+                        print('hello')
+                        bounding_box_quad_BR.append(coord)
+                        filtered_images += 1
+                        returned_bounding_boxes.append(original_img[top:bottom + 1, left:right + 1])
+                        bounding_box_locations.append((left, top))
+                        cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
+        else:  # text
+            cv2.rectangle(labeled_img, (left, top), (right, bottom), (0, 255, 0), thickness=1)
 
 print('[INFO]: Total number of connected components: ' + str(numLabels))
 print('[INFO]: Total number of images classified: ' + str(images))
