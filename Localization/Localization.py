@@ -91,8 +91,8 @@ def filtering(original_img,labels,stats,numLabels):
                 cv2.rectangle(text_labeled_img, (left, top), (right, bottom), (0, 255, 0), thickness=1)
                 text_regions.append([left, top, width, height, area])
 
-    cv2.imshow("Text bounding boxes on original image by size & aspect ratio", text_labeled_img)
-    cv2.waitKey(0)
+    #cv2.imshow("Text bounding boxes on original image by size & aspect ratio", text_labeled_img)
+    #cv2.waitKey(0)
     return original_img, text_regions, text_regions, image_regions, text_labeled_img
 
 
@@ -195,8 +195,8 @@ def fix_bounding_boxes(image_regions, text_regions, original_img, labeled_img):
         cv2.rectangle(labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
         cv2.rectangle(image_labeled_img, (left, top), (right, bottom), (128, 0, 128), thickness=1)
 
-    cv2.imshow('Labeled Img with Merged Bounding Boxes', labeled_img)
-    cv2.waitKey(0)
+    #cv2.imshow('Labeled Img with Merged Bounding Boxes', labeled_img)
+    #cv2.waitKey(0)
     print('[INFO]: Total number of images classified: ' + str(filtered_images))
 
     return original_img, labeled_img, text_regions, image_regions, returned_bounding_boxes, bounding_box_locations
@@ -232,8 +232,8 @@ def text_merging(original_img, labeled_img, text_regions, image_regions):
     for index in sorted(set(imgdellist), reverse=True):
         tempimgregions = np.delete(tempimgregions, index, axis=0)
     regions = tempimgregions.copy()
-    cv2.imshow('Text Merged Img', original_img)
-    cv2.waitKey(0)
+    #cv2.imshow('Text Merged Img', original_img)
+    #cv2.waitKey(0)
     for region in regions:
         left = region[0]
         top = region[1]
@@ -248,10 +248,10 @@ def text_merging(original_img, labeled_img, text_regions, image_regions):
 
 # Run Localization
 
-original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
-original, label, statistics, numLabel = segmentation(original, pre_processed)
-original_img, text_labeled_img, text_regions, image_regions, text_labeled_img = filtering(original, label, statistics, numLabel)
-original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = fix_bounding_boxes(image_regions, text_regions, original_img, text_labeled_img)
-regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
+#original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
+#original, label, statistics, numLabel = segmentation(original, pre_processed)
+#original_img, text_labeled_img, text_regions, image_regions, text_labeled_img = filtering(original, label, statistics, numLabel)
+#original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = fix_bounding_boxes(image_regions, text_regions, original_img, text_labeled_img)
+#regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
 #all_images_tester('Sample Labels')
 
