@@ -42,8 +42,9 @@ def all_images_tester(folder):
         cv2.imshow("Input: " + filenames[i], images[i])
         original, pre_processed = pre_processing(images[i])
         original, label, statistics, numLabel = segmentation(original, pre_processed)
-        original_img, text_labeled_img, text_regions, image_regions = filtering(original, label, statistics, numLabel)
-        original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = fix_bounding_boxes(image_regions, text_regions, original_img, text_labeled_img)
+        original_img, text_labeled_img, text_regions, image_regions, text_labeled_img = filtering(original, label, statistics, numLabel)
+        original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = second_segmentation(image_regions, text_regions, original_img, text_labeled_img)
+        regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
 
 
 def canny_filter(img, sigma = 0.33):
@@ -73,6 +74,7 @@ def segmentation(original_img, processed_img):
 
 
 def filtering(original_img,labels,stats,numLabels):
+    # Filters between image and text bounding boxes using set parameters
     h, w = labels.shape
     image_size = h*w
     T2 = 0.001*h*w
@@ -93,7 +95,7 @@ def filtering(original_img,labels,stats,numLabels):
 
     cv2.imshow("Text bounding boxes on original image by size & aspect ratio", text_labeled_img)
     cv2.waitKey(0)
-    return original_img, text_regions, text_regions, image_regions, text_labeled_img
+    return original_img, text_labeled_img, text_regions, image_regions
 
 
 def DoMerge(regiona, regionb, xbuffer=0, ybuffer=0, fortext=False):
@@ -146,7 +148,7 @@ def DoMerge(regiona, regionb, xbuffer=0, ybuffer=0, fortext=False):
     return (x1f, y1f, wf, hf)
 
 
-def MergeOverlapping(regions, loop=True, xbuffer=1, ybuffer=1):
+def MergeOverlapping(regions, loop=True, xbuffer=0, ybuffer=0):
     """Input: regions containing list of bounding box info [x, y, width, height, area]
     Output: new list of regions with the merged regions
     Keywords:
@@ -177,14 +179,36 @@ def MergeOverlapping(regions, loop=True, xbuffer=1, ybuffer=1):
             delta = 0
     return regions
 
+
+def second_segmentation(image_regions, text_regions, original_img, labeled_img):
+    largeimgregions = []
+    totalimgregions = len(image_regions)
+    tempimgregions = np.copy(image_regions)
+
+    dellist = []
+    for i, regiona in enumerate(tempimgregions):
+        numImgInRegion = 0
+        for j, regionb in enumerate(tempimgregions):
+            if j > i:
+                merged = DoMerge(regiona, regionb, xbuffer=0, ybuffer=0, fortext=True)
+                if merged:
+                    numImgInRegion += 1
+        if numImgInRegion > .2 * totalimgregions:
+            dellist.append(i)
+    for index in sorted(set(dellist), reverse=True):
+        image_regions = np.delete(tempimgregions, index, axis=0)
+
+    return fix_bounding_boxes(image_regions, text_regions, original_img, labeled_img)
+
+
 def fix_bounding_boxes(image_regions, text_regions, original_img, labeled_img):
     image_labeled_img = np.copy(original_img)
     filtered_images = 0
     returned_bounding_boxes = []
     bounding_box_locations = []
 
-    regions = MergeOverlapping(image_regions)
-    for region in regions:
+    image_regions = MergeOverlapping(image_regions)
+    for region in image_regions:
         left = region[0]
         top = region[1]
         right = left + region[2]
@@ -203,35 +227,53 @@ def fix_bounding_boxes(image_regions, text_regions, original_img, labeled_img):
 
 
 def text_merging(original_img, labeled_img, text_regions, image_regions):
+    testimg = np.copy(original_img)
     delta = -1
     returned_bounding_boxes = []
     bounding_box_locations = []
     numimgregions = len(image_regions)
     while delta != 0:
         numimgregions = len(list(image_regions))
+        imgcount = 0
         imgdellist = []
         textdellist = []
         tempimgregions = image_regions.copy()
         temptextregions = text_regions.copy()
         for i, regioni in enumerate(tempimgregions):
             numTextInRegion = 0
+            numImgInRegion = 0
             for j, regiont in enumerate(temptextregions):
                 if j > i:
-                    merged = DoMerge(regioni, regiont, xbuffer=2, ybuffer=2,fortext=True)
+                    merged = DoMerge(regioni, regiont, xbuffer=1, ybuffer=1,fortext=True)
                     if merged:
                         numTextInRegion += 1
                         textdellist.append(j)
-            if numTextInRegion / (numTextInRegion + 1) >= .80:
+            for k, regionim in enumerate(tempimgregions):
+                if k > i:
+                    merged = DoMerge(regioni, regionim, xbuffer=1, ybuffer=1, fortext=True)
+                    if merged:
+                        numImgInRegion += 1
+                        # textdellist.append(j)
+            if numTextInRegion / (numTextInRegion + numImgInRegion + 1) >= .80:
                 #make img text
+                print('[INFO]: Number of text bounding boxes in region:' + str(numTextInRegion))
                 imgdellist.append(i)
                 cv2.rectangle(original_img, (regioni[0], regioni[1]), (regioni[0] + regioni[2], regioni[1] + regioni[3]),
                               (0, 255, 0), thickness=1)
+            else:
+                imgcount += 1
+                print('[INFO]: Number of img bounding boxes in region:' + str(numImgInRegion))
+                cv2.rectangle(original_img, (regioni[0], regioni[1]),
+                              (regioni[0] + regioni[2], regioni[1] + regioni[3]),
+                              (128, 0, 128), thickness=1)
         for index in sorted(set(textdellist), reverse=True):
             temptextregions = np.delete(temptextregions, index, axis=0)
         delta = 0
     for index in sorted(set(imgdellist), reverse=True):
         tempimgregions = np.delete(tempimgregions, index, axis=0)
     regions = tempimgregions.copy()
+    print("num imgs: "+ str(imgcount))
+    print(len(regions))
     cv2.imshow('Text Merged Img', original_img)
     cv2.waitKey(0)
     for region in regions:
@@ -250,8 +292,8 @@ def text_merging(original_img, labeled_img, text_regions, image_regions):
 
 original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
 original, label, statistics, numLabel = segmentation(original, pre_processed)
-original_img, text_labeled_img, text_regions, image_regions, text_labeled_img = filtering(original, label, statistics, numLabel)
-original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = fix_bounding_boxes(image_regions, text_regions, original_img, text_labeled_img)
+original_img, text_labeled_img, text_regions, image_regions = filtering(original, label, statistics, numLabel)
+original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = second_segmentation(image_regions, text_regions, original_img, text_labeled_img)
 regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
 #all_images_tester('Sample Labels')
 
