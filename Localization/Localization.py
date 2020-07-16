@@ -292,10 +292,10 @@ def text_merging(original_img, labeled_img, text_regions, image_regions):
 
 # Run Localization
 
-original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
-original, label, statistics, numLabel = segmentation(original, pre_processed)
-original_img, text_labeled_img, text_regions, image_regions = filtering(original, label, statistics, numLabel)
-original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = second_segmentation(image_regions, text_regions, original_img, text_labeled_img)
-regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
+#original, pre_processed = pre_processing('Sample Labels/fda-fictitious-medical-device-udi-identifier.jpg')
+#original, label, statistics, numLabel = segmentation(original, pre_processed)
+#original_img, text_labeled_img, text_regions, image_regions = filtering(original, label, statistics, numLabel)
+#original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = second_segmentation(image_regions, text_regions, original_img, text_labeled_img)
+#regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
 #all_images_tester('Sample Labels')
 

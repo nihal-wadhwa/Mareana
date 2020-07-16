@@ -6,7 +6,7 @@ import sys
 import os
 # CHANGE TO SYSTEM PATH TO LOCALIZATION SCRIPT
 sys.path.insert(1, '/home/nikhil/mareana/mareana-repo/Localization')
-from Localization import pre_processing, segmentation, filtering, fix_bounding_boxes, text_merging
+from Localization import pre_processing, segmentation, filtering, second_segmentation, text_merging
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', type=str, default=None,
@@ -17,9 +17,9 @@ args = vars(parser.parse_args())
 
 original, pre_processed = pre_processing(args['image'])
 original, label, statistics, numLabel = segmentation(original, pre_processed)
-original_img, text_labeled_img, text_regions, image_regions, text_labeled_img = filtering(original, label, statistics, numLabel)
-original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = fix_bounding_boxes(image_regions, text_regions, original_img, text_labeled_img)
-regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
+original_img, text_labeled_img, text_regions, image_regions = filtering(original, label, statistics, numLabel)
+original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = second_segmentation(image_regions, text_regions, original_img, text_labeled_img)
+regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img, text_regions, image_regions)
 
 symbol_img = labeled_img.copy()
 
@@ -51,16 +51,18 @@ for image in returned_bounding_boxes:
 	# probability
 	i = preds.argmax(axis=1)[0]
 	label = lb.classes_[i]
-
-	# draw the class label + probability on the output image
-	text = "{}: {:.2f}%".format(label, preds[0][i] * 100)
-	print(text)
 	
-	symbol_img = cv2.putText(symbol_img, text, label_loc, cv2.FONT_HERSHEY_SIMPLEX, 0.3,
-		(0, 0, 255), 1, cv2.LINE_AA)
-	# show the output image
-	#cv2.imshow("Image", output)
-	#cv2.waitKey(0)
+	# Threshold for classification
+	if (preds[0][i] >= 0.5):
+		# draw the class label + probability on the output image
+		text = "{}: {:.2f}%".format(label, preds[0][i] * 100)
+		print(text)
+	
+		symbol_img = cv2.putText(symbol_img, text, label_loc, cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+			(0, 0, 255), 1, cv2.LINE_AA)
+		# show the output image
+		#cv2.imshow("Image", output)
+		#cv2.waitKey(0)
 	
 	# Increment next symbol
 	s += 1
