@@ -21,8 +21,8 @@ from skimage.color import rgb2gray
 # GOALS
 # 1) Figure out dilation (nihal)
 
-# 2) Resize images to certain size (50K? 70K?) and then run code on it with x/ybuffer=0 or 1 && return bounding box on ORIGINAL img
-# 4) secondary merging of all regions?
+# 3*) Fix what to do with "clusters of images"
+# 4) maybe reclassify image vs text after text merging
 
 # Draws bounding boxes onto image
 # Green: (0,255,0); Purple: (128,0,128)
@@ -52,13 +52,16 @@ def load_images_from_folder(folder):
 def all_images_tester(folder):
     images, filenames = load_images_from_folder(folder)
     for i in range(len(images)):
-        cv2.imshow("Input: " + filenames[i], images[i])
         original = images[i]
-        pre_processed = pre_processing(original)
+        resized_original, scale, pre_processed = pre_processing(original)
         bounding_boxes = segmentation(pre_processed)
         image_regions, text_regions = filtering(bounding_boxes)
         image_regions, text_regions = second_segmentation(image_regions, text_regions)
-        returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, image_regions)
+        text_regions = text_merging(text_regions)
+        returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, image_regions)
+        returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, text_regions, image=False)
+        cv2.imshow('FINAL', original)
+        cv2.waitKey(0)
 
 
 def canny_filter(img, sigma=0.33):
@@ -69,13 +72,21 @@ def canny_filter(img, sigma=0.33):
     return edged
 
 def pre_processing(img):
-
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Resizing all imgs to 50,000 pixels
+    target_size = 50000
+    h, w = img.shape
+    img_size = h * w
+    scale_factor = np.sqrt(target_size / img_size)
+    dsize = (int(np.round(w * scale_factor)), int(np.round(h * scale_factor)))
+    img = cv2.resize(img, dsize)
+    resized_img = np.copy(img)
+    resized_img = cv2.cvtColor(resized_img, cv2.COLOR_GRAY2BGR)
 
     # Run 3x3 Canny Filter on image to get gradient
     grad = canny_filter(img,sigma=0.33)
 
-    return grad
+    return resized_img, scale_factor, grad
 
 
 def segmentation(processed_img):
@@ -155,7 +166,7 @@ def DoMerge(regiona, regionb, xbuffer=1, ybuffer=1, fortext=False):
     return (x1f, y1f, wf, hf)
 
 
-def MergeOverlapping(regions, loop=True, xbuffer=11, ybuffer=11):
+def MergeOverlapping(regions, loop=True, xbuffer=0, ybuffer=0):
     """Input: regions containing list of bounding box info [x, y, width, height, area]
     Output: new list of regions with the merged regions
     Keywords:
@@ -221,7 +232,7 @@ def second_segmentation(image_regions, text_regions):
                     numTextInRegion += 1
                     textdellist.append(k)
         # gets rid of overlapped bounding box when too many imgs were inside it
-        if numImgsInRegion / (numTextInRegion + numImgsInRegion + 1) > 0.9:
+        if numImgsInRegion / (numTextInRegion + numImgsInRegion + 1) > 0.2:
             imgdellist.append(i)
             imgaddlist.extend(temp_imgaddlist)
         # changes img overlapped bounding box to text bounding box
@@ -239,37 +250,38 @@ def second_segmentation(image_regions, text_regions):
 
     return overlapped_image_regions, text_regions
 
-#def text_merging(image_regions, text_regions):
-    #regions = np.insert(text_regions, 0, image_regions, axis=0)
-    #overlapped_regions = MergeOverlapping(regions)
-    #return overlapped_regions
+def text_merging(text_regions):
+    overlapped_regions = MergeOverlapping(text_regions,xbuffer=1,ybuffer=1)
+    return overlapped_regions
 
-def get_final_bounding_boxes(img, image_regions):
+def get_final_bounding_boxes(img, scale_factor, regions, image=True):
     returned_bounding_boxes = []
     bounding_box_locations = []
-    for region in image_regions:
-        left = region[0]
-        top = region[1]
-        right = left + region[2]
-        bottom = top + region[3]
+    for region in regions:
+        left = int(np.round(region[0] / scale_factor))
+        top = int(np.round(region[1] / scale_factor))
+        right = left + int(np.round(region[2]) / scale_factor)
+        bottom = top + int(np.round(region[3]) / scale_factor)
         returned_bounding_boxes.append(img[top:bottom + 1, left:right + 1])
         bounding_box_locations.append((left, top))
+        if image:
+            cv2.rectangle(img, (left, top), (right, bottom), (128, 0, 128))
+        else:
+            cv2.rectangle(img, (left, top), (right, bottom), (0, 255, 0))
     return returned_bounding_boxes, bounding_box_locations
 
 # Run Localization
 
-original = cv2.imread('Sample Labels/journal.pone.0165002.g003.png')
-pre_processed = pre_processing(original)
-bounding_boxes = segmentation(pre_processed)
-image_regions, text_regions = filtering(bounding_boxes)
-image_regions, text_regions = second_segmentation(image_regions, text_regions)
+#original = cv2.imread('Sample Labels/FCCID.io-1486409-bg1.png')
+#resized_original, scale, pre_processed = pre_processing(original)
+#bounding_boxes = segmentation(pre_processed)
+#image_regions, text_regions = filtering(bounding_boxes)
+#image_regions, text_regions = second_segmentation(image_regions, text_regions)
 
-image_labeled_img = drawBoundingBoxes(original, image_regions, (128,0,128))
-labeled_img = drawBoundingBoxes(image_labeled_img, text_regions, (0,255,0))
-cv2.imshow('labels after second segmentation', labeled_img)
-cv2.waitKey(0)
+#returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, image_regions)
+#returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, text_regions)
+#cv2.imshow('FINAL', original)
+#cv2.waitKey(0)
 
-returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, image_regions)
-
-#all_images_tester('Sample Labels')
+all_images_tester('Sample Labels')
 
