@@ -6,7 +6,7 @@ import sys
 import os
 # CHANGE TO SYSTEM PATH TO LOCALIZATION SCRIPT
 sys.path.insert(1, '/home/nikhil/mareana/mareana-repo/Localization')
-from Localization import pre_processing, watershed_segmentation, filtering
+from Localization import pre_processing, segmentation, filtering, fix_bounding_boxes, text_merging
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', type=str, default=None,
@@ -16,8 +16,11 @@ parser.add_argument("--model", type=str, default=None,
 args = vars(parser.parse_args())
 
 original, pre_processed = pre_processing(args['image'])
-original, segmented, label, statistics, numLabel = watershed_segmentation(original, pre_processed)
-original_img, labeled_img, bounding_box_array, bounding_box_locations = filtering(original, segmented, label, statistics, numLabel)
+original, label, statistics, numLabel = segmentation(original, pre_processed)
+original_img, text_labeled_img, text_regions, image_regions, text_labeled_img = filtering(original, label, statistics, numLabel)
+original_img, labeled_img, text_regions, image_regions, bounding_box_array, bounding_box_locations = fix_bounding_boxes(image_regions, text_regions, original_img, text_labeled_img)
+regions, returned_bounding_boxes, bounding_box_locations = text_merging(original_img, labeled_img,text_regions,image_regions)
+
 symbol_img = labeled_img.copy()
 
 # load the model and label binarizer
@@ -27,7 +30,7 @@ lb = pickle.loads(open("../../output/{}_lb.pickle".format(args['model']), "rb").
 
 s = 0 # Symbol counter for retrieving label location
 # make a prediction on the images
-for image in bounding_box_array:
+for image in returned_bounding_boxes:
 	label_loc = bounding_box_locations[s]
 	output = image.copy()
 	image = cv2.resize(image, (64, 64))
