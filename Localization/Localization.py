@@ -283,5 +283,5 @@ def get_final_bounding_boxes(img, scale_factor, regions, image=True):
 #cv2.imshow('FINAL', original)
 #cv2.waitKey(0)
 
-all_images_tester('Sample Labels')
+#all_images_tester('Sample Labels')
 
