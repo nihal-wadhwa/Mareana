@@ -58,11 +58,7 @@ def all_images_tester(folder):
         image_regions, text_regions = filtering(bounding_boxes)
         image_regions, text_regions = second_segmentation(image_regions, text_regions)
         text_regions = text_merging(text_regions)
-        returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, image_regions)
-        returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, text_regions, image=False)
-        cv2.imshow('FINAL', original)
-        cv2.waitKey(0)
-
+        returned_bounding_boxes, bounding_box_locations, final_img = get_final_bounding_boxes(original, scale, image_regions)
 
 def canny_filter(img, sigma=0.33):
     median = np.median(img)
@@ -231,8 +227,8 @@ def second_segmentation(image_regions, text_regions):
                 if merged:
                     numTextInRegion += 1
                     textdellist.append(k)
-        # gets rid of overlapped bounding box when too many imgs were inside it
-        if numImgsInRegion / (numTextInRegion + numImgsInRegion + 1) > 0.2:
+        # gets rid of overlapped bounding box when too many imgs were inside it - parameter=0.8
+        if numImgsInRegion / (numTextInRegion + numImgsInRegion + 1) > 0.8:
             imgdellist.append(i)
             imgaddlist.extend(temp_imgaddlist)
         # changes img overlapped bounding box to text bounding box
@@ -255,6 +251,7 @@ def text_merging(text_regions):
     return overlapped_regions
 
 def get_final_bounding_boxes(img, scale_factor, regions, image=True):
+    finalimg = np.copy(img)
     returned_bounding_boxes = []
     bounding_box_locations = []
     for region in regions:
@@ -265,10 +262,9 @@ def get_final_bounding_boxes(img, scale_factor, regions, image=True):
         returned_bounding_boxes.append(img[top:bottom + 1, left:right + 1])
         bounding_box_locations.append((left, top))
         if image:
-            cv2.rectangle(img, (left, top), (right, bottom), (128, 0, 128))
-        else:
-            cv2.rectangle(img, (left, top), (right, bottom), (0, 255, 0))
-    return returned_bounding_boxes, bounding_box_locations
+            cv2.rectangle(finalimg, (left, top), (right, bottom), (128, 0, 128))
+
+    return returned_bounding_boxes, bounding_box_locations, finalimg
 
 # Run Localization
 
@@ -277,11 +273,9 @@ def get_final_bounding_boxes(img, scale_factor, regions, image=True):
 #bounding_boxes = segmentation(pre_processed)
 #image_regions, text_regions = filtering(bounding_boxes)
 #image_regions, text_regions = second_segmentation(image_regions, text_regions)
+#text_regions = text_merging(text_regions)
 
-#returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, image_regions)
-#returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(original, scale, text_regions)
-#cv2.imshow('FINAL', original)
-#cv2.waitKey(0)
+#returned_bounding_boxes, bounding_box_locations, final_img = get_final_bounding_boxes(original, scale, image_regions)
 
 #all_images_tester('Sample Labels')
 
