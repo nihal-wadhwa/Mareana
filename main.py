@@ -1,12 +1,16 @@
 import os
+import sys
 import argparse
-from PIL import Image
-import PIL
 import numpy as np
 import argparse
 import cv2
-import re
+import pickle
 from tensorflow.python.keras import models
+
+# CHANGE TO SYSTEM PATH TO LOCALIZATION SCRIPT
+sys.path.insert(1, '/Users/dhruv/Desktop/Document-Symbol-Classification/Localization')
+from Localization import pre_processing, segmentation, filtering, second_segmentation, drawBoundingBoxes, get_final_bounding_boxes
+
 
 #extract the arguments 
 parser = argparse.ArgumentParser(description=
@@ -15,87 +19,118 @@ parser = argparse.ArgumentParser(description=
 parser.add_argument('--task', type=str, default='pass',
                     help="""
                     task to perform: 
-                    augment_images-->augment a set of images to extend dataset
-                    fit-->fit the classifier (and optionaly save) the classifier; 
-                    evaluate-->­­­calculate the accuracy on a given set of images
-                    classify-->predict the probability that the image is from the possible classes
+                    segment-->process document and draw bounding boxes
+                    predict-->­­­classify bounded symbols in the document
+                    collect-->­­­save extracted symbols with labels
                     """)
 
-parser.add_argument('--segment', type=str, default=None,
+parser.add_argument('--seg', type=str, default=None,
                     help="""
                     Path of the image when we want to perform document segmentation
                     """)
 
-parser.add_argument('--evaluate_directory', type=str, default='test',
+parser.add_argument('--pred', type=str, default=None,
                     help="""
-                    If we want to evaluate accuracy on images in "train", "val" or "test"
+                    Path of the image that needs to be labeled
                     """)
 
-parser.add_argument('--img', type=str, default=None,
+parser.add_argument('--save', type=str, default=None,
                     help="""
-                    Path of the image when we want to predict its class
+                    Path of the image that needs symbol extraction
                     """)
 
 args = parser.parse_args()
 
 #checking the format of given arguments
-if args.task not in ['segment', 'fit', 'evaluate', 'classify']:
+if args.task not in ['segment', 'predict', 'collect']:
     print('Task not supported!')
     args.task = 'pass'
 
 if args.task == 'segment':    
     if os.path.exists(args.seg):
-        seg_path = args.seg
-    else:
-        print('Unknown path!')
-        args.task = 'pass'
-
-if args.task == 'evaluate_directory':    
-    if args.evaluate_directory not in ['train', 'val', 'test']:
-        print('evaluate_directory has to be train, val or test')
-        args.task = 'pass'
-
-if args.task == 'classify':    
-    if os.path.exists(args.img):
-        img_path = args.img
+        doc_path = args.seg
     else:
         print('Unknown path!')
         args.task = 'pass'
 
 
-# function to preprocess the image
-def read_image(folder):
-    pass
+if args.task == 'predict':    
+    if os.path.exists(args.pred):
+        img_path = args.pred
+    else:
+        print('Unknown path!')
+        args.task = 'pass'
 
-'''
-- function to fit a model with new data
-- function calls read_image to read images
-- import saved model and fit the new images
-'''
-def fit():
-    pass
+if args.task == 'collect':    
+    if os.path.exists(args.save):
+        img_path = args.save
+    else:
+        print('Unknown path!')
+        args.task = 'pass'
 
-# function to classify a symbol
-def classify(img_path):
-    pass   
 
-# testing function to calculate accuracy of model
-def evaluate():
-    pass
 
-# pass the input document to the localization script
-def segment():
-    pass
+def segment(doc):
+    pre_processed = pre_processing(doc)
+    bounding_boxes = segmentation(pre_processed)
+    image_regions, text_regions = filtering(bounding_boxes)
+    image_regions, text_regions = second_segmentation(image_regions, text_regions)
+    returned_bounding_boxes, bounding_box_locations = get_final_bounding_boxes(doc, image_regions)
+    image_labeled_img = drawBoundingBoxes(doc, image_regions, (128,0,128))
+    labeled_img = drawBoundingBoxes(image_labeled_img, text_regions, (0,255,0))
+
+    if args.task == 'segment':
+        cv2.imshow('labels after second segmentation', labeled_img)
+        cv2.waitKey(0)
+    else:
+        return returned_bounding_boxes, bounding_box_locations, labeled_img
+
+
+def predict(symbols, locations, original):
+    text = {}
+    model = models.load_model('src/output/vggnet.model')
+    lb = pickle.loads(open("src/output/vggnet_lb.pickle", "rb").read())
+    s = 0 # Symbol counter for retrieving label location
+    # make a prediction on the images
+    symbol_img = original.copy()
+
+    for image in symbols:
+        label_loc = locations[s]
+        image = cv2.resize(image, (64, 64))
+        image = image.astype("float") / 255.0
+        image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
+        
+        # make model preictions
+        preds = model.predict(image)
+
+        # find the class label index with largest probability
+        i = preds.argmax(axis=1)[0]
+        label = lb.classes_[i]
+
+        if (preds[0][i] >= 0.7):
+            # draw the class label + probability
+            text = "{}: {:.2f}%".format(label, preds[0][i] * 100)
+            print(text)
+            symbol_img = cv2.putText(symbol_img, text, label_loc, cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+			    (0, 0, 255), 1, cv2.LINE_AA)
+
+        # Increment next symbol
+        s += 1
+
+    cv2.imshow("Image", symbol_img)
+    cv2.waitKey(0)
+
+def collect(symbols)
+
 
 # call functions based on --task values
 if args.task == 'segment':
-    segment(seg_path)
+    segment(cv2.imread(doc_path))
 
-elif args.task == 'fit':
-    fit()
-  
-elif args.task == 'classify':
-    classify(img_path)
-    
-elif args.task == 'evaluate':
-    evaluate()
+elif args.task == 'predict':
+    symbols, locations, original = segment(cv2.imread(img_path))
+    predict(symbols, locations, original)
+
+elif args.task == 'collect':
+    symbols, locations, original = segment(cv2.imread(img_path))
+    collect(symbols)
