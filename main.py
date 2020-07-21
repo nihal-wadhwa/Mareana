@@ -80,11 +80,12 @@ def segment(original):
     text_regions = text_merging(text_regions)
     returned_bounding_boxes, bounding_box_locations, final_img = get_final_bounding_boxes(original, scale, image_regions)
 
-    if args.task == 'segment':
-        cv2.imshow('Labels after segmentation', labeled_img)
-        cv2.waitKey(0)
-    else:
-        return returned_bounding_boxes, bounding_box_locations, final_img
+    return returned_bounding_boxes, bounding_box_locations, final_img
+    
+
+def predict(symbols, locations, original):
+    final_doc = predict_symbols(symbols, locations, original)
+    cv2.imwrite('output/', final_doc)
 
 
 # call functions based on --task values
@@ -93,9 +94,7 @@ if args.task == 'segment':
 
 elif args.task == 'predict':
     symbols, locations, original = segment(cv2.imread(img_path))
-    final_doc = predict_symbols(symbols, locations, original)
-    cv2.imshow('Document after labeling', final_doc)
-    cv2.waitKey(0)
+    predict(symbols, locations, original)
 
 elif args.task == 'collect':
     symbols, locations, original = segment(cv2.imread(img_path))

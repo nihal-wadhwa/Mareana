@@ -1,44 +1,36 @@
-from flask import Flask, request, jsonify
-import pickle
+# import the necessary packages
+import os
+import time
 import cv2
-from flask_cors import CORS
-from main import predict, segment
-import numpy as np
-from PIL import Image
+from flask import Flask, request, jsonify, send_from_directory
+#from main import segment, predict
 
-# initialize our Flask application and the Keras model
-app = Flask(__name__)
-CORS(app)
+# set the project root directory as the static folder, you can set others.
+app = Flask(__name__, static_url_path='')
 
-@app.route('/classify', methods=['POST'])
-def classify():
-    # initialize the returned data dictionary
-    data = {"success": False}
-    if request.method == 'POST':
-        if request.files.get('img'):
+@app.route('/time')
+def get_current_time():
+    return {'time': time.time()}
 
-            data =request.files['file']
-            filename = secure_filename(file.filename) # save file 
-            filepath = os.path.join(app.config['imgdir'], filename);
-            file.save(filepath)
-            image = cv2.imread(filepath)
-
-            bounded_image = segment(image)
-
-            data["predictions"] = []
-            #classify the image
-            preds = predict(bounded_image)
-            data["predictions"].append(preds)
-
-            # indicate that the request was a success
-            data["success"] = True
-
-    # return the data dictionary as a JSON response
-    return jsonify(data)
+@app.route("/predict")
+def predict():
+    alldocs = []
+    for filename in os.listdir('sample_labels'):
+        if filename.endswith(('.jpg', '.png', 'jpeg')):
+            alldocs.append(os.path.join('sample_labels', filename))
+        else:
+            continue
+    return {'docs': alldocs}
+    
+    for doc in alldocs:
+        symbols, locations, original = segment(cv2.imread(img_path))
+        final_doc = predict_symbols(symbols, locations, original)
+        cv2.imwrite('output/', final_doc)
 
 # if this is the main thread of execution first load the model and
 # then start the server
 if __name__ == "__main__":
     print(("* Loading Keras model and Flask starting server..."
         "please wait until server has fully started"))
+    load_model()
     app.run()
