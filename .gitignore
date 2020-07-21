@@ -3,4 +3,6 @@
 /train
 /val
 /templates
+/client/node_modules
+/sample_labels
 .DS_Store
