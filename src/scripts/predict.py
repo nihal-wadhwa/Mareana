@@ -49,22 +49,22 @@ def annotateDocument(original, labels, bounding_box_locations):
 
 	locations = []
 	for i in range(0, len(labels)):
-	        color = (random.randint(1, 254), random.randint(1, 254), random.randint(1, 254))
-        	cv2.rectangle(newImg, (labeled_bounding_box_locs[i][0], labeled_bounding_box_locs[i][1]),
+		color = (random.randint(1, 254), random.randint(1, 254), random.randint(1, 254))
+		cv2.rectangle(newImg, (labeled_bounding_box_locs[i][0], labeled_bounding_box_locs[i][1]),
                       (labeled_bounding_box_locs[i][2], labeled_bounding_box_locs[i][3]), color, thickness=2)
-		if i < len(labels) / 2:
-		        top = int((2 * h / len(labels)) * i)
-        		left = w
-		        bottom = top + int(h / len(labels))
-        		locations.append([top, bottom])
-	        else:
-		        left = int(1.225 * w)
-        		index = i - int(len(labels) / 2) - 1
-		        top, bottom = locations[index][0:2]
+		if (i < len(labels) / 2):
+			top = int((2 * h / len(labels)) * i)
+			left = w
+			bottom = top + int(h / len(labels))
+			locations.append([top, bottom])
+		else:
+			left = int(1.225 * w)
+			index = i - int(len(labels) / 2) - 1
+			top, bottom = locations[index][0:2]
 
-        	cv2.rectangle(newImg, (left, top), (left + 15, bottom), color, thickness=-1)
-	        cv2.putText(newImg, labels[i], (left + 35, top + int((bottom - top) / 2)), cv2.FONT_HERSHEY_SIMPLEX, 0.3, color,
-        	            1, cv2.LINE_AA)
+		cv2.rectangle(newImg, (left, top), (left + 15, bottom), color, thickness=-1)
+		cv2.putText(newImg, labels[i], (left + 35, top + int((bottom - top) / 2)), cv2.FONT_HERSHEY_SIMPLEX, 0.3, color, 
+				1, cv2.LINE_AA)
 
 	#cv2.imshow('rectangles', newImg)
 	#cv2.waitKey(0)
