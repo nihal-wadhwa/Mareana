@@ -1,6 +1,6 @@
 import React from 'react';
 import './navbar.style.scss'
-import image from '../../mareana_logo.png'
+import image from '../../images/mareana_logo.png'
 
 const Navbar = () => (
     <nav class="navbar">

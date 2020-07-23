@@ -1,11 +1,27 @@
 .homepage {
-    padding: 10px 80px;
+    padding: 10px 60px;
 }
 
 .intro {
-    font-size: 42px;
-    font-family: 'Montserrat', sans-serif;
-    letter-spacing: 1px;
-    text-align: left;
-    text-transform: uppercase;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    grid-column: 1fr, 1fr, 1fr;
+    grid-gap: 10%;
+
+    img {
+        width: 200px;
+        height: 200px;
+        
+    }
+
+    h4 {
+        font-family: 'Montserrat', sans-serif; 
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 13px;
+    }
 }
+
+
