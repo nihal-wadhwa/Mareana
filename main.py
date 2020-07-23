@@ -13,7 +13,7 @@ from src.scripts.save_symbol import save_symbol
 from src.scripts.predict import predict_symbols
 from Localization.Localization import pre_processing, segmentation, filtering, second_segmentation, text_merging, get_final_bounding_boxes
 
-
+'''
 # extract the arguments 
 parser = argparse.ArgumentParser(description=
 'Segment a document, fit the classifier, evaluate accuracy or predict class of symbol')
@@ -69,8 +69,8 @@ if args.task == 'collect':
     else:
         print('Unknown path!')
         args.task = 'pass'
-
-
+'''
+img_path = "/Users/dhruv/Desktop/Document-Symbol-Classification/sample_labels/2932989.jpg"
 
 def segment(original):
     resized_original, scale, pre_processed = pre_processing(original)
@@ -85,9 +85,12 @@ def segment(original):
 
 def predict(symbols, locations, original):
     final_doc = predict_symbols(symbols, locations, original)
-    cv2.imwrite('output/', final_doc)
+    return final_doc
 
+def collect(symbols):
+    save_symbol(symbols)
 
+'''
 # call functions based on --task values
 if args.task == 'segment':
     segment(cv2.imread(doc_path))
@@ -99,3 +102,8 @@ elif args.task == 'predict':
 elif args.task == 'collect':
     symbols, locations, original = segment(cv2.imread(img_path))
     save_symbol(symbols)
+'''
+
+
+#symbols, locations, original = segment(cv2.imread(img_path))
+#collect(symbols)
