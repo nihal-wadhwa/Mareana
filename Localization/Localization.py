@@ -53,7 +53,7 @@ def all_images_tester(folder):
         resized_original, scale, gradient_bounding_boxes, dilation_bounding_boxes = pre_processing(original)
         image_regions, text_regions = classification(gradient_bounding_boxes, dilation_bounding_boxes)
         returned_bounding_boxes, bounding_box_locations, finalImg = get_final_bounding_boxes(original, scale, image_regions)
-        cv2.imshow('FINAL', finalImg)
+        cv2.imshow(str(filenames[i]), finalImg)
         cv2.waitKey(0)
 
 
@@ -243,7 +243,6 @@ def second_segmentation(image_regions, text_regions):
     imgaddlist = []
     textdellist = []
     textaddlist = []
-
     for i, regiona in enumerate(temp_overlapped_regions):
         numImgsInRegion = 0
         numTextInRegion = 0
@@ -331,21 +330,34 @@ def get_final_bounding_boxes(img, scale_factor, regions, image=True):
     return returned_bounding_boxes, bounding_box_locations, finalimg
 
 
-def annotateDocument(file, labels, bounding_box_locations):
+def annotateDocument(file, labels, confidence, bounding_box_locations):
     labels = []
+    confidence = []
     labeled_bounding_box_locs = bounding_box_locations
 
     for i in range(1, len(labeled_bounding_box_locs) + 1):
-        labels.append(chr(ord('@') + i))
+        labels.append(chr(ord('@') + i%12))
+        confidence.append(random.randint(10,100))
 
     image = Image.open(file)
     w, h = image.size
-    new_width = int(1.55 * w)
+    new_width = int(1.7 * w)
     newImg = Image.new(image.mode, (new_width, h), (255, 255, 255))
     newImg.paste(image, (0, 0))
     newImg = np.asarray(newImg)
-    cv2.imshow('pil img', newImg)
-    cv2.waitKey(0)
+
+    regiondellist = []
+    for i, regiona in enumerate(labeled_bounding_box_locs):
+        for j, regionb in enumerate(labeled_bounding_box_locs):
+            if j > i:
+                merged = DoMerge(regiona, regionb, xbuffer=-1, ybuffer=-1, fortext=True)
+                if merged and labels[i] == labels[j]:
+                    # keep region with higher confidence
+                    if confidence[j] > confidence[i]:
+                        regiondellist.append(i)
+    labeled_bounding_box_locs = np.delete(labeled_bounding_box_locs, regiondellist, axis=0)
+    labels = np.delete(labels, regiondellist, axis=0)
+    confidence = np.delete(confidence, regiondellist, axis=0)
 
     locations = []
     for i in range(0, len(labels)):
@@ -358,26 +370,25 @@ def annotateDocument(file, labels, bounding_box_locations):
             bottom = top + int(h / len(labels))
             locations.append([top, bottom])
         else:
-            left = int(1.225 * w)
+            left = int(1.35 * w)
             index = i - int(len(labels) / 2) - 1
             top, bottom = locations[index][0:2]
 
         cv2.rectangle(newImg, (left, top), (left + 15, bottom), color, thickness=-1)
-        cv2.putText(newImg, labels[i], (left + 35, top + int((bottom - top) / 2)), cv2.FONT_HERSHEY_SIMPLEX, 0.3, color,
+        cv2.putText(newImg, labels[i], (left + 25, bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.3, color,
                     1, cv2.LINE_AA)
 
     cv2.imshow('rectangles', newImg)
     cv2.waitKey(0)
     return newImg
 
-
 # Run Localization
 
-#original = cv2.imread('Sample Labels/FCCID.io-1486409-bg1.png')
-#resized_original, scale, gradient_bounding_boxes, dilation_bounding_boxes = pre_processing(original)
-#image_regions, text_regions = classification(gradient_bounding_boxes, dilation_bounding_boxes)
-#returned_bounding_boxes, bounding_box_locations, finalImg = get_final_bounding_boxes(original, scale, image_regions)
-#cv2.imshow('FINAL', finalImg)
-#cv2.waitKey(0)
+original = cv2.imread('Sample Labels/tumblr_inline_opzh8tb2Ep1tu0keb_640.png')
+resized_original, scale, gradient_bounding_boxes, dilation_bounding_boxes = pre_processing(original)
+image_regions, text_regions = classification(gradient_bounding_boxes, dilation_bounding_boxes)
+returned_bounding_boxes, bounding_box_locations, finalImg = get_final_bounding_boxes(original, scale, image_regions)
+cv2.imshow('FINAL', finalImg)
+cv2.waitKey(0)
 
-all_images_tester('Sample Labels')
+#all_images_tester('Sample Labels')
