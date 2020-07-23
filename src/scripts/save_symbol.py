@@ -26,4 +26,8 @@ def save_symbol(symbols):
         confidence = "{}_{:.0f}".format(label, (preds[0][i] * 100))
         #img = cv2.imdecode(symbol, cv2.IMREAD_GRAYSCALE)
 
-        cv2.imwrite('output/{}.png'.format(confidence), symbol_copy)
+        if os.path.isdir("saved_symbols/{}".format(label)):
+            cv2.imwrite('saved_symbols/{}/{}.png'.format(label, confidence), symbol_copy)
+        else:
+            os.mkdir("saved_symbols/{}".format(label))
+            cv2.imwrite('saved_symbols/{}/{}.png'.format(label, confidence), symbol_copy)
