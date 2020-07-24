@@ -1,0 +1,22 @@
+h2 i {
+    animation: rotate 5s infinite linear; 
+    position: relative;
+    color: #d9534f;
+    top: 5px;
+    left: 5px;
+    padding: 10px;
+}
+
+h3 i {
+    position: relative;
+    color: #5cb85c;
+    top: 5px;
+    left: 5px;
+    padding: 10px;
+}
+
+@keyframes rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -3,12 +3,12 @@ import './navbar.style.scss'
 import image from '../../images/mareana_logo.png'
 
 const Navbar = () => (
-    <nav class="navbar">
-        <div class="container">
-            <div class="logo">
+    <nav className="navbar">
+        <div className="container">
+            <div className="logo">
                 <img src={image} alt="logo" />
             </div>
-            <ul class="nav">
+            <ul className="nav">
                 <a href="#">HOME</a>
             </ul>
         </div >

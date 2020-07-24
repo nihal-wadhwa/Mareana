@@ -11,15 +11,15 @@ const Homepage = () => (
         <Navbar></Navbar>
         <div className="intro">
             <div>
-                <img src={upload} />
+                <img src={upload} alt="upload" />
                 <h4>Upload Your Documents</h4>
             </div>
             <div>
-                <img src={process} />
+                <img src={process} alt="process" />
                 <h4>We Label Them For You</h4>
             </div>
             <div>
-                <img src={download} />
+                <img src={download} alt="download" />
                 <h4>Results saved in your folder</h4>
             </div>
         </div>
