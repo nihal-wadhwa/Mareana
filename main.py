@@ -11,7 +11,7 @@ import pickle
 sys.path.insert(1, '/Users/dhruv/Desktop/Document-Symbol-Classification/')
 from src.scripts.save_symbol import save_symbol
 from src.scripts.predict import predict_symbols
-from Localization.Localization import pre_processing, segmentation, filtering, second_segmentation, text_merging, get_final_bounding_boxes
+from Localization.Localization import pre_processing, classification, get_final_bounding_boxes
 
 '''
 # extract the arguments 
@@ -70,14 +70,10 @@ if args.task == 'collect':
         print('Unknown path!')
         args.task = 'pass'
 '''
-img_path = "/Users/dhruv/Desktop/Document-Symbol-Classification/sample_labels/2932989.jpg"
 
 def segment(original):
-    resized_original, scale, pre_processed = pre_processing(original)
-    bounding_boxes = segmentation(pre_processed)
-    image_regions, text_regions = filtering(bounding_boxes)
-    image_regions, text_regions = second_segmentation(image_regions, text_regions)
-    text_regions = text_merging(text_regions)
+    resized_original, scale, gradient_bounding_boxes, dilation_bounding_boxes = pre_processing(original)
+    image_regions, text_regions = classification(gradient_bounding_boxes, dilation_bounding_boxes)
     returned_bounding_boxes, bounding_box_locations, final_img = get_final_bounding_boxes(original, scale, image_regions)
 
     return returned_bounding_boxes, bounding_box_locations, final_img

@@ -30,7 +30,7 @@ def my_model():
 def read_docs():
     alldocs = []
     for filename in os.listdir('sample_labels'):
-        if filename.endswith('.png'):
+        if filename.endswith(('.png','.jpg')):
             alldocs.append(os.path.join('sample_labels/', filename))
         else:
             continue
@@ -40,10 +40,15 @@ def read_docs():
 @app.route("/classify")
 def classify():
     #initialize the returned data dictionary
-    data = {"success": False}
+    data = {"success": False, "docs": 0, "symbols": 0}
     alldocs = read_docs()
     print("[INFO] processing medical documents...")
+    total_docs = 0
+    total_symbols = 0
     for doc in alldocs:
+        print(doc)
+        # tracking total medical labels
+        total_docs += 1
         # Symbol counter for retrieving label location
         s = 0
         # Copy image for labelling
@@ -51,6 +56,9 @@ def classify():
         doc_copy = original.copy()
         
         for symbol in symbols:
+            # tracking total medical symbols
+            total_symbols += 1
+
             label_loc = locations[s]
             symbol_copy = symbol.copy()
 
@@ -66,10 +74,10 @@ def classify():
             i = preds.argmax(axis=1)[0]
             label = lb.classes_[i]
 
-            if (preds[0][i] >= 0.7):
+            if (preds[0][i] >= 0.6):
 			    # draw the class label + probability on the output image
                 confidence = "{}_{:.0f}%".format(label, preds[0][i] * 100)
-                final_doc = cv2.putText(doc_copy, confidence, label_loc, cv2.FONT_HERSHEY_SIMPLEX, 0.3,
+                final_doc = cv2.putText(doc_copy, confidence, (label_loc[0], label_loc[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
                 (0, 0, 255), 1, cv2.LINE_AA)
                 
                 # save symbols to local directory for future training 
@@ -87,7 +95,9 @@ def classify():
         print("[INFO] just processed and saved a doc!")
 
     print("[INFO] medical documents processed!")
-    data = {"success": True}
+    data["success"] = True
+    data["docs"] = total_docs
+    data["symbols"] = total_symbols
     return data
     
 # if this is the main thread of execution first load the model and
