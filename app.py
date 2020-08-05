@@ -74,7 +74,7 @@ def classify():
             i = preds.argmax(axis=1)[0]
             label = lb.classes_[i]
 
-            if (preds[0][i] >= 0.6):
+            if (preds[0][i] >= 0.55):
 			    # draw the class label + probability on the output image
                 confidence = "{}_{:.0f}%".format(label, preds[0][i] * 100)
                 final_doc = cv2.putText(doc_copy, confidence, (label_loc[0], label_loc[1]), cv2.FONT_HERSHEY_SIMPLEX, 0.3,
@@ -90,8 +90,13 @@ def classify():
             s += 1
 
         # code snippet for saving annotated document
+        # create new directory if it doesn't exist
         label = doc.split(os.path.sep)[-1].split(".")[0]
-        cv2.imwrite('annotated_docs/{}.png'.format(label), final_doc)
+        if os.path.isdir("annotated_docs/"):
+            cv2.imwrite('annotated_docs/{}.png'.format(label), final_doc)
+        else:
+            os.mkdir("annotated_docs/".format(label))
+            cv2.imwrite('annotated_docs/{}.png'.format(label), final_doc)
         print("[INFO] just processed and saved a doc!")
 
     print("[INFO] medical documents processed!")
@@ -102,7 +107,6 @@ def classify():
     
 # if this is the main thread of execution first load the model and
 # then start the server
-
 print(("* Loading Keras model and Flask starting server..."
         "please wait until server has fully started"))
 my_model()

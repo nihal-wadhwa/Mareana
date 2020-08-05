@@ -7,8 +7,11 @@ import argparse
 import cv2
 import pickle
 
-# CHANGE TO SYSTEM PATH TO LOCALIZATION SCRIPT
+# ------------- CHANGE TO SYSTEM PATH TO LOCALIZATION SCRIPT---------------
 sys.path.insert(1, '/Users/dhruv/Desktop/Document-Symbol-Classification/')
+
+
+
 from src.scripts.save_symbol import save_symbol
 from src.scripts.predict import predict_symbols
 from Localization.Localization import pre_processing, classification, get_final_bounding_boxes

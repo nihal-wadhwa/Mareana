@@ -12,7 +12,7 @@ const Homepage = () => (
         <div className="intro">
             <div>
                 <img src={upload} alt="upload" />
-                <h4>Upload Your Documents</h4>
+                <h4>Enter your directory path</h4>
             </div>
             <div>
                 <img src={process} alt="process" />
@@ -20,7 +20,7 @@ const Homepage = () => (
             </div>
             <div>
                 <img src={download} alt="download" />
-                <h4>Results saved in your folder</h4>
+                <h4>Results saved in your directory</h4>
             </div>
         </div>
         <Upload></Upload>

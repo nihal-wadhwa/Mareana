@@ -58,7 +58,7 @@ def all_images_tester(folder):
 
 
 def get_all_symbol_aspect_ratios():
-    main = "../symbols/"
+    main = "symbols/"
     folder = [os.path.join(main, folder) for folder in os.listdir(main) if not (folder.startswith('.'))]
     symbols = [os.path.join(d, f) for d in folder for f in os.listdir(d)[:1]]
 
@@ -383,12 +383,12 @@ def annotateDocument(file, labels, confidence, bounding_box_locations):
     return newImg
 
 # Run Localization
-
+'''
 original = cv2.imread('Sample Labels/tumblr_inline_opzh8tb2Ep1tu0keb_640.png')
 resized_original, scale, gradient_bounding_boxes, dilation_bounding_boxes = pre_processing(original)
 image_regions, text_regions = classification(gradient_bounding_boxes, dilation_bounding_boxes)
 returned_bounding_boxes, bounding_box_locations, finalImg = get_final_bounding_boxes(original, scale, image_regions)
 cv2.imshow('FINAL', finalImg)
 cv2.waitKey(0)
-
+'''
 #all_images_tester('Sample Labels')
